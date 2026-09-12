@@ -4,10 +4,20 @@ import { storage } from '../../utils/storage';
 
 const initialTheme = storage.get(APP_CONFIG.THEME_KEY, APP_CONFIG.DEFAULT_THEME);
 
-// Initialize document data-theme
-if (typeof document !== 'undefined') {
-  document.documentElement.setAttribute('data-theme', initialTheme);
-}
+const applyTheme = (theme) => {
+  if (typeof document === 'undefined') return;
+  document.documentElement.setAttribute('data-theme', theme);
+  if (theme === 'dark') {
+    document.documentElement.classList.add('dark');
+    if (document.body) document.body.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+    if (document.body) document.body.classList.remove('dark');
+  }
+};
+
+// Initialize document data-theme and dark class immediately
+applyTheme(initialTheme);
 
 const initialState = {
   theme: initialTheme,
@@ -24,16 +34,12 @@ export const uiSlice = createSlice({
     toggleTheme: (state) => {
       state.theme = state.theme === 'dark' ? 'light' : 'dark';
       storage.set(APP_CONFIG.THEME_KEY, state.theme);
-      if (typeof document !== 'undefined') {
-        document.documentElement.setAttribute('data-theme', state.theme);
-      }
+      applyTheme(state.theme);
     },
     setTheme: (state, action) => {
       state.theme = action.payload;
       storage.set(APP_CONFIG.THEME_KEY, state.theme);
-      if (typeof document !== 'undefined') {
-        document.documentElement.setAttribute('data-theme', state.theme);
-      }
+      applyTheme(state.theme);
     },
     toggleSidebar: (state) => {
       state.sidebarCollapsed = !state.sidebarCollapsed;

@@ -1,105 +1,73 @@
-import mongoose from 'mongoose';
 import Milestone from '../models/milestone.model.js';
+import Project from '../models/project.model.js';
 
-let inMemoryMilestones = [
-  {
-    _id: '65f1f1b2c3d4e5f6a7b8c951',
-    id: '65f1f1b2c3d4e5f6a7b8c951',
-    projectId: '65f1e1b2c3d4e5f6a7b8c941',
-    title: 'Geotechnical Soil Survey & Environmental Clearance',
-    description: 'Detailed EIA clearance from MoEFCC and seismic stability assessments.',
-    dueDate: new Date('2022-09-30'),
-    status: 'completed',
-    createdAt: new Date('2022-04-10'),
-  },
-  {
-    _id: '65f1f1b2c3d4e5f6a7b8c952',
-    id: '65f1f1b2c3d4e5f6a7b8c952',
-    projectId: '65f1e1b2c3d4e5f6a7b8c941',
-    title: 'Grade Separator & Interchange Civil Works',
-    description: 'Construction of 8 high-speed cloverleaf intersections.',
-    dueDate: new Date('2024-11-30'),
-    status: 'in-progress',
-    createdAt: new Date('2023-01-10'),
-  },
-  {
-    _id: '65f1f1b2c3d4e5f6a7b8c953',
-    id: '65f1f1b2c3d4e5f6a7b8c953',
-    projectId: '65f1e1b2c3d4e5f6a7b8c942',
-    title: 'Intake Well Submerged Pumping Machinery Installation',
-    description: 'High-capacity vertical turbine pumps delivery and electrical grid sync.',
-    dueDate: new Date('2023-10-15'),
-    status: 'delayed',
-    createdAt: new Date('2023-02-01'),
-  },
-];
-
-const isDbConnected = () => mongoose.connection.readyState === 1;
+export const normalizeMilestone = (m) => {
+  if (!m) return m;
+  const doc = typeof m.toObject === 'function' ? m.toObject() : { ...m };
+  if (doc.projectId && typeof doc.projectId === 'object') {
+    doc.projectId = {
+      ...doc.projectId,
+      name: doc.projectId.name || doc.projectId.title || 'Infrastructure Project',
+      title: doc.projectId.title || doc.projectId.name || 'Infrastructure Project',
+    };
+  }
+  return {
+    ...doc,
+    _id: doc._id?.toString() || doc.id,
+    id: doc._id?.toString() || doc.id,
+    title: doc.title || 'Milestone Checkpoint',
+    status: (doc.status || 'pending').toLowerCase().replace(' ', '-'),
+    dueDate: doc.dueDate || doc.targetDate || null,
+  };
+};
 
 export const milestoneDao = {
   findAll: async (query = {}) => {
-    if (isDbConnected()) {
-      return await Milestone.find(query).sort({ dueDate: 1 }).populate('projectId', 'name status').lean();
-    }
-    let filtered = inMemoryMilestones;
-    if (query.projectId) {
-      filtered = filtered.filter((m) => m.projectId === query.projectId || (m.projectId && m.projectId._id === query.projectId));
-    }
-    return filtered;
+    const list = await Milestone.find(query).sort({ dueDate: 1 }).populate('projectId', 'name title status').lean();
+    return list.map(normalizeMilestone);
   },
 
   findById: async (id) => {
-    if (isDbConnected()) {
-      return await Milestone.findById(id).populate('projectId', 'name status').lean();
-    }
-    return inMemoryMilestones.find((m) => m._id === id || m.id === id) || null;
+    const m = await Milestone.findById(id).populate('projectId', 'name title status').lean();
+    return m ? normalizeMilestone(m) : null;
   },
 
   findByProject: async (projectId) => {
-    if (isDbConnected()) {
-      return await Milestone.find({ projectId }).sort({ dueDate: 1 }).lean();
+    const results = await Milestone.find({ projectId }).sort({ dueDate: 1 }).populate('projectId', 'name title status').lean();
+    if (results.length > 0) return results.map(normalizeMilestone);
+
+    const proj = await Project.findById(projectId).lean();
+    if (proj && Array.isArray(proj.milestones) && proj.milestones.length > 0) {
+      return proj.milestones.map((m) => normalizeMilestone({
+        _id: m._id,
+        id: m._id,
+        projectId: {
+          _id: proj._id,
+          name: proj.name || proj.title,
+          title: proj.title || proj.name,
+          status: proj.status,
+        },
+        title: m.title,
+        description: m.remarks || m.description || '',
+        dueDate: m.targetDate || m.dueDate,
+        status: (m.status || 'pending').toLowerCase().replace(' ', '-'),
+        responsiblePerson: m.responsiblePerson,
+      }));
     }
-    return inMemoryMilestones.filter((m) => m.projectId === projectId || (m.projectId && m.projectId._id === projectId));
+    return [];
   },
 
   create: async (data) => {
-    if (isDbConnected()) {
-      return (await Milestone.create({ ...data, createdAt: data.createdAt || new Date() })).toObject();
-    }
-    const newId = new mongoose.Types.ObjectId().toString();
-    const newM = {
-      _id: newId,
-      id: newId,
-      projectId: data.projectId,
-      title: data.title,
-      description: data.description || '',
-      dueDate: new Date(data.dueDate),
-      status: data.status || 'pending',
-      createdAt: new Date(),
-    };
-    inMemoryMilestones.push(newM);
-    return newM;
+    return (await Milestone.create({ ...data, createdAt: data.createdAt || new Date() })).toObject();
   },
 
   update: async (id, updateData) => {
-    if (isDbConnected()) {
-      return await Milestone.findByIdAndUpdate(id, updateData, { new: true }).lean();
-    }
-    const index = inMemoryMilestones.findIndex((m) => m._id === id || m.id === id);
-    if (index === -1) return null;
-    inMemoryMilestones[index] = { ...inMemoryMilestones[index], ...updateData };
-    return inMemoryMilestones[index];
+    return await Milestone.findByIdAndUpdate(id, updateData, { new: true }).lean();
   },
 
   delete: async (id) => {
-    if (isDbConnected()) {
-      const res = await Milestone.findByIdAndDelete(id);
-      return !!res;
-    }
-    const index = inMemoryMilestones.findIndex((m) => m._id === id || m.id === id);
-    if (index === -1) return false;
-    inMemoryMilestones.splice(index, 1);
-    return true;
+    const res = await Milestone.findByIdAndDelete(id);
+    return !!res;
   },
 };
 

@@ -52,14 +52,14 @@ const Sidebar = () => {
 
       {/* Sidebar Drawer Container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-slate-950 text-white flex flex-col transition-all duration-300 ease-in-out border-r border-slate-800 shrink-0 lg:static lg:z-30 ${
-          mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
-        } ${collapsed ? 'lg:w-20' : 'lg:w-64'} w-72 max-w-[85vw] h-full min-h-screen`}
+        className={`fixed inset-y-0 left-0 z-50 bg-slate-950 text-white flex flex-col transition-all duration-300 ease-in-out border-r border-slate-800 shrink-0 md:static md:sticky md:top-0 md:h-screen md:z-30 ${
+          mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
+        } ${collapsed ? 'md:w-20' : 'md:w-64'} w-72 max-w-[85vw] h-full`}
       >
         {/* Government Emblem & Portal Header */}
         <div
           className={`h-16 flex items-center gap-3 border-b border-slate-800/80 bg-gradient-to-b from-slate-900 to-slate-950 px-4 sm:px-5 justify-between ${
-            collapsed ? 'lg:justify-center' : ''
+            collapsed ? 'md:justify-center' : ''
           }`}
         >
           <div className="flex items-center gap-3 min-w-0">
@@ -67,7 +67,7 @@ const Sidebar = () => {
               <Building2 size={20} className="text-white" />
             </div>
 
-            <div className={`flex flex-col overflow-hidden ${collapsed ? 'lg:hidden' : 'flex'}`}>
+            <div className={`flex flex-col overflow-hidden ${collapsed ? 'md:hidden' : 'flex'}`}>
               <span className="font-bold text-sm text-white tracking-tight truncate">
                 PMO ProjectHub
               </span>
@@ -80,7 +80,7 @@ const Sidebar = () => {
           {/* Close Button for Mobile Drawer */}
           <button
             onClick={() => dispatch(closeMobileSidebar())}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 lg:hidden transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 md:hidden transition-colors cursor-pointer"
             title="Close menu"
           >
             <X size={18} />
@@ -91,7 +91,7 @@ const Sidebar = () => {
         <div className="p-3 flex-1 flex flex-col gap-1 overflow-y-auto">
           <span
             className={`text-[10px] font-bold uppercase text-slate-400 px-3 py-1.5 tracking-wider ${
-              collapsed ? 'lg:hidden' : 'block'
+              collapsed ? 'md:hidden' : 'block'
             }`}
           >
             Core Operations
@@ -116,7 +116,7 @@ const Sidebar = () => {
                 <Icon size={18} className="shrink-0" />
                 <span
                   className={`flex-1 whitespace-nowrap truncate ${
-                    collapsed ? 'lg:hidden' : 'block'
+                    collapsed ? 'md:hidden' : 'block'
                   }`}
                 >
                   {item.name}
@@ -124,7 +124,7 @@ const Sidebar = () => {
                 <ChevronRight
                   size={14}
                   className={`opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0 ${
-                    collapsed ? 'lg:hidden' : 'block'
+                    collapsed ? 'md:hidden' : 'block'
                   }`}
                 />
               </NavLink>
@@ -136,7 +136,7 @@ const Sidebar = () => {
             <>
               <span
                 className={`text-[10px] font-bold uppercase text-amber-400 px-3 pt-3 pb-1 tracking-wider ${
-                  collapsed ? 'lg:hidden' : 'block'
+                  collapsed ? 'md:hidden' : 'block'
                 }`}
               >
                 Administrative Controls
@@ -157,14 +157,14 @@ const Sidebar = () => {
                 <PlusCircle size={18} className="shrink-0" />
                 <span
                   className={`flex-1 whitespace-nowrap truncate ${
-                    collapsed ? 'lg:hidden' : 'block'
+                    collapsed ? 'md:hidden' : 'block'
                   }`}
                 >
                   Add New Project
                 </span>
                 <span
                   className={`text-[10px] bg-amber-500 text-slate-950 font-bold px-1.5 py-0.5 rounded ml-auto shrink-0 ${
-                    collapsed ? 'lg:hidden' : 'inline-block'
+                    collapsed ? 'md:hidden' : 'inline-block'
                   }`}
                 >
                   ADMIN
@@ -177,7 +177,7 @@ const Sidebar = () => {
         {/* Role Footer Status */}
         <div
           className={`p-3 m-3 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 ${
-            collapsed ? 'lg:hidden' : 'block'
+            collapsed ? 'md:hidden' : 'block'
           }`}
         >
           <div className="flex items-center gap-2 mb-1">

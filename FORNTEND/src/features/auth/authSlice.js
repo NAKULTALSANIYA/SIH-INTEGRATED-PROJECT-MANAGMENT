@@ -3,20 +3,25 @@ import authApi from '../../api/authApi';
 import { APP_CONFIG } from '../../utils/constants';
 import { storage } from '../../utils/storage';
 
-const storedToken = storage.get(APP_CONFIG.TOKEN_KEY, 'gov_token_admin_usr-gov-001');
-const storedUser = storage.get(APP_CONFIG.USER_KEY, {
-  id: 'usr-gov-001',
-  name: 'Shri R. K. Verma, IAS',
-  email: 'admin@gov.in',
-  role: 'ADMIN',
-  department: 'PMO - Infrastructure Monitoring Group',
-  designation: 'Joint Secretary & Project Director',
-});
+const rawToken = storage.get(APP_CONFIG.TOKEN_KEY, null);
+const rawUser = storage.get(APP_CONFIG.USER_KEY, null);
+
+const isLegacyDemo =
+  (typeof rawToken === 'string' && rawToken.startsWith('gov_token_')) ||
+  (rawUser && (rawUser.id === 'usr-gov-001' || rawUser.name?.includes('Verma')));
+
+if (isLegacyDemo) {
+  storage.remove(APP_CONFIG.TOKEN_KEY);
+  storage.remove(APP_CONFIG.USER_KEY);
+}
+
+const storedToken = isLegacyDemo ? null : rawToken;
+const storedUser = isLegacyDemo ? null : rawUser;
 
 const initialState = {
   user: storedUser,
   token: storedToken,
-  isAuthenticated: Boolean(storedToken),
+  isAuthenticated: Boolean(storedToken && storedUser),
   isLoading: false,
   error: null,
 };
@@ -60,33 +65,6 @@ export const authSlice = createSlice({
       storage.remove(APP_CONFIG.TOKEN_KEY);
       storage.remove(APP_CONFIG.USER_KEY);
     },
-    switchRoleDemo: (state, action) => {
-      const role = action.payload; // 'ADMIN' | 'VIEWER'
-      if (role === 'ADMIN') {
-        state.user = {
-          id: 'usr-gov-001',
-          name: 'Shri R. K. Verma, IAS',
-          email: 'admin@gov.in',
-          role: 'ADMIN',
-          department: 'PMO - Infrastructure Monitoring Group',
-          designation: 'Joint Secretary & Project Director',
-        };
-        state.token = 'gov_token_admin_usr-gov-001';
-      } else {
-        state.user = {
-          id: 'usr-gov-002',
-          name: 'Dr. Ananya Iyer',
-          email: 'viewer@gov.in',
-          role: 'VIEWER',
-          department: 'NITI Aayog / Citizen Audit Wing',
-          designation: 'Principal Project Evaluator',
-        };
-        state.token = 'gov_token_viewer_usr-gov-002';
-      }
-      state.isAuthenticated = true;
-      storage.set(APP_CONFIG.TOKEN_KEY, state.token);
-      storage.set(APP_CONFIG.USER_KEY, state.user);
-    },
     clearError: (state) => {
       state.error = null;
     },
@@ -113,12 +91,18 @@ export const authSlice = createSlice({
   },
 });
 
-export const { logout, switchRoleDemo, clearError } = authSlice.actions;
+export const { logout, clearError } = authSlice.actions;
 
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
-export const selectIsAdmin = (state) => state.auth.user?.role === 'ADMIN';
-export const selectUserRole = (state) => state.auth.user?.role || 'VIEWER';
+export const selectIsAdmin = (state) => {
+  const role = (state.auth.user?.role || '').toUpperCase();
+  return role === 'ADMIN' || !!state.auth.user?.isAdmin;
+};
+export const selectUserRole = (state) => {
+  const role = (state.auth.user?.role || '').toUpperCase();
+  return role === 'ADMIN' ? 'ADMIN' : 'VIEWER';
+};
 export const selectAuthLoading = (state) => state.auth.isLoading;
 export const selectAuthError = (state) => state.auth.error;
 

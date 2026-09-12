@@ -6,6 +6,7 @@ import Button from '../../components/common/Button/Button';
 import Badge from '../../components/common/Badge/Badge';
 import Modal from '../../components/common/Modal/Modal';
 import Input from '../../components/common/Input/Input';
+import { Skeleton, SkeletonCardList } from '../../components/common/Skeleton';
 import { Plus, RefreshCw, Trash2, ShieldAlert, FolderGit2, Calendar } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 
@@ -186,7 +187,23 @@ const RisksPage = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredRisks.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`skel-risk-${i}`} className="hover:bg-slate-50/50">
+                  <td className="px-4 py-3.5">
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-4 w-56" />
+                      <Skeleton className="h-3 w-36" />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-3.5 w-32" /></td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-3.5 w-24" /></td>
+                  <td className="px-4 py-3.5 text-right"><Skeleton className="h-7 w-20 ml-auto rounded-lg" /></td>
+                </tr>
+              ))
+            ) : filteredRisks.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-12 text-slate-400">
                   No risks recorded under the selected criteria.
@@ -254,7 +271,9 @@ const RisksPage = () => {
 
       {/* MOBILE RISK CARDS VIEW (displayed on < md) */}
       <div className="md:hidden flex flex-col gap-3">
-        {filteredRisks.length === 0 ? (
+        {isLoading ? (
+          <SkeletonCardList count={4} />
+        ) : filteredRisks.length === 0 ? (
           <div className="bg-white rounded-xl p-8 border border-slate-200 text-center text-slate-400 text-xs">
             No risks recorded under the selected criteria.
           </div>

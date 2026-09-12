@@ -8,6 +8,7 @@ import { clientApi, teamApi } from '../../api';
 import Card from '../../components/common/Card/Card';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
+import { Skeleton } from '../../components/common/Skeleton';
 import { ArrowLeft, Save, ShieldAlert } from 'lucide-react';
 
 const CreateProjectPage = () => {
@@ -27,16 +28,20 @@ const CreateProjectPage = () => {
 
   const [clients, setClients] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [isLoadingRelations, setIsLoadingRelations] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const loadRelations = async () => {
       try {
+        setIsLoadingRelations(true);
         const [cRes, tRes] = await Promise.all([clientApi.getAll(), teamApi.getAll()]);
         setClients(Array.isArray(cRes) ? cRes : cRes?.data || []);
         setTeams(Array.isArray(tRes) ? tRes : tRes?.data || []);
       } catch (err) {
         console.error('Failed loading clients/teams', err);
+      } finally {
+        setIsLoadingRelations(false);
       }
     };
     loadRelations();
@@ -45,11 +50,11 @@ const CreateProjectPage = () => {
   // Role Security Check
   if (!isAdmin) {
     return (
-      <div className="p-6 sm:p-10 text-center bg-white rounded-2xl border border-rose-200 shadow-sm max-w-lg mx-auto mt-6 sm:mt-10">
+      <div className="p-6 sm:p-10 text-center bg-white dark:bg-slate-800 rounded-2xl border border-rose-200 dark:border-rose-900/50 shadow-sm max-w-lg mx-auto mt-6 sm:mt-10">
         <ShieldAlert size={48} className="text-rose-500 mx-auto mb-3" />
-        <h2 className="text-lg sm:text-xl font-bold text-rose-700">Administrative Authorization Required</h2>
-        <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto mt-2 mb-6 leading-relaxed">
-          Your current session does not have admin privileges. Only designated <strong className="text-slate-800">admin</strong> accounts can register new projects.
+        <h2 className="text-lg sm:text-xl font-bold text-rose-700 dark:text-rose-400">Administrative Authorization Required</h2>
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto mt-2 mb-6 leading-relaxed">
+          Your current session does not have admin privileges. Only designated <strong className="text-slate-800 dark:text-white">admin</strong> accounts can register new projects.
         </p>
         <Button variant="secondary" onClick={() => navigate('/projects')}>
           Return to Projects Directory
@@ -116,7 +121,7 @@ const CreateProjectPage = () => {
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Description
             </label>
             <textarea
@@ -124,20 +129,20 @@ const CreateProjectPage = () => {
               placeholder="Detailed description of project objectives, scope and deliverables..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
 
           {/* Status & Timing */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Operational Status
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 uppercase"
+                className="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 uppercase"
               >
                 <option value="planning">PLANNING</option>
                 <option value="active">ACTIVE</option>
@@ -184,39 +189,47 @@ const CreateProjectPage = () => {
           {/* Client & Assigned Team */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Client / Sponsoring Agency
               </label>
-              <select
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="">-- No Client Selected --</option>
-                {clients.map((c) => (
-                  <option key={c._id || c.id} value={c._id || c.id}>
-                    {c.name} {c.company ? `(${c.company})` : ''}
-                  </option>
-                ))}
-              </select>
+              {isLoadingRelations ? (
+                <Skeleton className="h-10 w-full rounded-lg" />
+              ) : (
+                <select
+                  value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="">-- No Client Selected --</option>
+                  {clients.map((c) => (
+                    <option key={c._id || c.id} value={c._id || c.id}>
+                      {c.name} {c.company ? `(${c.company})` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Assigned Team
               </label>
-              <select
-                value={teamId}
-                onChange={(e) => setTeamId(e.target.value)}
-                className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
-              >
-                <option value="">-- No Team Assigned --</option>
-                {teams.map((t) => (
-                  <option key={t._id || t.id} value={t._id || t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+              {isLoadingRelations ? (
+                <Skeleton className="h-10 w-full rounded-lg" />
+              ) : (
+                <select
+                  value={teamId}
+                  onChange={(e) => setTeamId(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="">-- No Team Assigned --</option>
+                  {teams.map((t) => (
+                    <option key={t._id || t.id} value={t._id || t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 

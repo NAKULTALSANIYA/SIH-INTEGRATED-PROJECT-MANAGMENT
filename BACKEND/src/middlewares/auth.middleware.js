@@ -16,44 +16,21 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    // Try standard JWT decode
     const decoded = jwt.verify(token, envConfig.jwtSecret);
     const user = await userDao.findById(decoded.id);
-    if (user) {
-      req.user = {
-        ...user,
-        id: (user._id || user.id).toString(),
-        _id: (user._id || user.id).toString(),
-        role: user.role || (user.isAdmin ? 'admin' : 'user'),
-      };
-      return next();
+    if (!user) {
+      throw new ApiError(401, 'Unauthorized: User account not found in database');
     }
+    req.user = {
+      ...user,
+      id: (user._id || user.id).toString(),
+      _id: (user._id || user.id).toString(),
+      role: user.role || (user.isAdmin ? 'admin' : 'user'),
+    };
+    return next();
   } catch (err) {
-    // Fallback for demo tokens or dev tokens
+    throw new ApiError(401, err.message || 'Invalid or expired authentication token');
   }
-
-  // Demo token parsing: e.g. "gov_token_<role>_<id>" or simple strings
-  if (token.toLowerCase().includes('admin')) {
-    req.user = {
-      _id: '65f1a1b2c3d4e5f6a7b8c901',
-      id: '65f1a1b2c3d4e5f6a7b8c901',
-      username: 'admin_officer',
-      email: 'admin@gov.in',
-      role: 'admin',
-      isAdmin: true,
-    };
-  } else {
-    req.user = {
-      _id: '65f1a1b2c3d4e5f6a7b8c902',
-      id: '65f1a1b2c3d4e5f6a7b8c902',
-      username: 'project_viewer',
-      email: 'viewer@gov.in',
-      role: 'user',
-      isAdmin: false,
-    };
-  }
-
-  next();
 });
 
 /**

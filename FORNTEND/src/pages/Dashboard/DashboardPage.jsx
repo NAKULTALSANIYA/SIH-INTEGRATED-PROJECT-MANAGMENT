@@ -12,6 +12,7 @@ import { reportApi } from '../../api';
 import Card from '../../components/common/Card/Card';
 import Button from '../../components/common/Button/Button';
 import Badge from '../../components/common/Badge/Badge';
+import { Skeleton, SkeletonKpi, SkeletonTable } from '../../components/common/Skeleton';
 import {
   Building2,
   CheckCircle2,
@@ -64,11 +65,42 @@ const DashboardPage = () => {
   if (isLoading && !dashboardData) {
     return (
       <div className="flex flex-col gap-4 sm:gap-6">
-        <div className="h-28 w-full bg-slate-200 rounded-2xl animate-pulse" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <div key={n} className="h-28 bg-slate-200 rounded-xl animate-pulse" />
-          ))}
+        {/* Executive Banner Skeleton */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl sm:rounded-2xl p-5 sm:p-7 shadow-md flex flex-col gap-3">
+          <Skeleton className="h-4 w-40 bg-slate-800" />
+          <Skeleton className="h-7 w-3/5 bg-slate-800" />
+          <Skeleton className="h-4 w-2/5 bg-slate-800" />
+        </div>
+
+        {/* 6 KPI Cards Skeleton */}
+        <SkeletonKpi count={6} />
+
+        {/* Analytics Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col gap-4">
+            <Skeleton className="h-5 w-44" />
+            <Skeleton className="h-4 w-60" />
+            <div className="h-56 flex items-center justify-center">
+              <Skeleton className="h-44 w-44 rounded-full" />
+            </div>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col gap-4">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-52" />
+            <div className="h-56 flex flex-col justify-center gap-4">
+              <Skeleton className="h-6 w-full rounded-full" />
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Schemes Table Skeleton */}
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-5 w-48" />
+          <SkeletonTable rows={4} columns={7} />
         </div>
       </div>
     );

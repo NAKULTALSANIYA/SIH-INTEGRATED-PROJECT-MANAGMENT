@@ -6,6 +6,7 @@ import Button from '../../components/common/Button/Button';
 import Badge from '../../components/common/Badge/Badge';
 import Modal from '../../components/common/Modal/Modal';
 import Input from '../../components/common/Input/Input';
+import { Skeleton, SkeletonKanban, SkeletonTable } from '../../components/common/Skeleton';
 import {
   Plus,
   Trash2,
@@ -393,66 +394,90 @@ const TasksPage = () => {
       {/* Kanban Metric Cards & Progress */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* Total Tasks */}
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500">
+        <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
             <span className="text-xs font-semibold">Total Tasks</span>
             <Layers size={16} className="text-slate-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 mt-2">{stats.total}</div>
+          {isLoading ? (
+            <Skeleton className="h-7 w-12 rounded mt-2" />
+          ) : (
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">{stats.total}</div>
+          )}
           <span className="text-[11px] text-slate-400 mt-1">Across all projects</span>
         </div>
 
         {/* To Do */}
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-600">
+        <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
             <span className="text-xs font-semibold">To Do</span>
             <Clock size={16} className="text-slate-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-800 mt-2">{stats.todo}</div>
+          {isLoading ? (
+            <Skeleton className="h-7 w-12 rounded mt-2" />
+          ) : (
+            <div className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-2">{stats.todo}</div>
+          )}
           <span className="text-[11px] text-slate-400 mt-1">Queued items</span>
         </div>
 
         {/* In Progress */}
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-blue-700">
+        <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-blue-700 dark:text-blue-400">
             <span className="text-xs font-semibold">In Progress</span>
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
           </div>
-          <div className="text-2xl font-bold text-blue-700 mt-2">{stats.inProgress}</div>
+          {isLoading ? (
+            <Skeleton className="h-7 w-12 rounded mt-2" />
+          ) : (
+            <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 mt-2">{stats.inProgress}</div>
+          )}
           <span className="text-[11px] text-blue-500/80 mt-1">Active development</span>
         </div>
 
         {/* Review */}
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-amber-700">
+        <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-amber-700 dark:text-amber-400">
             <span className="text-xs font-semibold">Review</span>
             <AlertCircle size={16} className="text-amber-500" />
           </div>
-          <div className="text-2xl font-bold text-amber-700 mt-2">{stats.review}</div>
+          {isLoading ? (
+            <Skeleton className="h-7 w-12 rounded mt-2" />
+          ) : (
+            <div className="text-2xl font-bold text-amber-700 dark:text-amber-400 mt-2">{stats.review}</div>
+          )}
           <span className="text-[11px] text-amber-600/80 mt-1">Pending approval</span>
         </div>
 
         {/* Blocked */}
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-rose-700">
+        <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-rose-700 dark:text-rose-400">
             <span className="text-xs font-semibold">Blocked</span>
             <AlertTriangle size={16} className="text-rose-500" />
           </div>
-          <div className="text-2xl font-bold text-rose-700 mt-2">{stats.blocked}</div>
+          {isLoading ? (
+            <Skeleton className="h-7 w-12 rounded mt-2" />
+          ) : (
+            <div className="text-2xl font-bold text-rose-700 dark:text-rose-400 mt-2">{stats.blocked}</div>
+          )}
           <span className="text-[11px] text-rose-600/80 mt-1">Needs attention</span>
         </div>
 
         {/* Done / Completion */}
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-emerald-700">
+        <div className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400">
             <span className="text-xs font-semibold">Completion</span>
             <CheckCircle2 size={16} className="text-emerald-500" />
           </div>
-          <div className="flex items-baseline gap-1.5 mt-2">
-            <span className="text-2xl font-bold text-emerald-700">{stats.done}</span>
-            <span className="text-xs font-bold text-emerald-600">({stats.completionPercent}%)</span>
-          </div>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+          {isLoading ? (
+            <Skeleton className="h-7 w-16 rounded mt-2" />
+          ) : (
+            <div className="flex items-baseline gap-1.5 mt-2">
+              <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{stats.done}</span>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">({stats.completionPercent}%)</span>
+            </div>
+          )}
+          <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 mt-2 overflow-hidden">
             <div
               className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${stats.completionPercent}%` }}
@@ -546,7 +571,9 @@ const TasksPage = () => {
       </div>
 
       {/* MAIN VIEW: KANBAN BOARD OR LIST */}
-      {viewMode === 'kanban' ? (
+      {isLoading ? (
+        viewMode === 'kanban' ? <SkeletonKanban /> : <SkeletonTable rows={6} columns={6} />
+      ) : viewMode === 'kanban' ? (
         /* ================= KANBAN BOARD VIEW ================= */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4.5 items-start">
           {KANBAN_COLUMNS.map((col) => {

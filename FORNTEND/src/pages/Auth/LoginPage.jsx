@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Input from '../../components/common/Input/Input';
 import Button from '../../components/common/Button/Button';
-import { Lock, Mail, Building2, Eye, EyeOff, ShieldCheck, UserCheck } from 'lucide-react';
+import { Lock, Mail, Building2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
 
-  const [email, setEmail] = useState('admin@gov.in');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -25,12 +25,6 @@ const LoginPage = () => {
         result.error || 'Authentication failed. Please verify your government portal credentials.'
       );
     }
-  };
-
-  const handleQuickFill = (roleEmail, rolePass) => {
-    setEmail(roleEmail);
-    setPassword(rolePass);
-    setErrorMessage('');
   };
 
   return (
@@ -55,32 +49,6 @@ const LoginPage = () => {
           <p className="text-xs text-slate-500 mt-1 max-w-sm px-2 leading-relaxed">
             Centralized National Infrastructure Surveillance & Milestone Management
           </p>
-        </div>
-
-        {/* Quick Demo Credentials Panel for Hackathon Evaluators */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-col gap-2">
-          <span className="text-[10px] sm:text-[11px] font-bold text-blue-800 uppercase tracking-wide">
-            ⚡ Hackathon Quick Evaluator Login (One-Click):
-          </span>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => handleQuickFill('admin@gov.in', 'admin123')}
-              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white border border-blue-200 text-xs font-semibold text-blue-900 hover:bg-blue-100/50 shadow-2xs transition-colors cursor-pointer min-h-[40px]"
-            >
-              <ShieldCheck size={15} className="text-amber-600 shrink-0" />
-              <span>Fill Admin (Director)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickFill('viewer@gov.in', 'viewer123')}
-              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white border border-blue-200 text-xs font-semibold text-sky-900 hover:bg-sky-100/50 shadow-2xs transition-colors cursor-pointer min-h-[40px]"
-            >
-              <UserCheck size={15} className="text-sky-600 shrink-0" />
-              <span>Fill Viewer (Public)</span>
-            </button>
-          </div>
         </div>
 
         {/* Login Form Card */}

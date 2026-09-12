@@ -9,6 +9,7 @@ import Button from '../../components/common/Button/Button';
 import Badge from '../../components/common/Badge/Badge';
 import Modal from '../../components/common/Modal/Modal';
 import Input from '../../components/common/Input/Input';
+import { SkeletonProjectDetails } from '../../components/common/Skeleton';
 import {
   ArrowLeft,
   PlusCircle,
@@ -170,12 +171,7 @@ const ProjectDetailsPage = () => {
   };
 
   if (isLoading || !project) {
-    return (
-      <div className="flex flex-col gap-4 sm:gap-6">
-        <div className="h-44 w-full bg-slate-200 rounded-2xl animate-pulse" />
-        <div className="h-80 w-full bg-slate-200 rounded-2xl animate-pulse" />
-      </div>
-    );
+    return <SkeletonProjectDetails />;
   }
 
   const budget = Number(project.budget || 0);

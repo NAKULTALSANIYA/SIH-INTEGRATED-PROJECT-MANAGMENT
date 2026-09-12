@@ -3,9 +3,12 @@ const { Schema, model } = mongoose;
 
 const UserSchema = new Schema(
   {
+    name: {
+      type: String,
+      trim: true,
+    },
     username: {
       type: String,
-      required: true,
       trim: true,
     },
     email: {
@@ -14,21 +17,28 @@ const UserSchema = new Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^.+@.+\..+$/, 'Please enter a valid email address'],
     },
     passwordHash: {
       type: String,
-      required: true,
+    },
+    password: {
+      type: String,
     },
     role: {
       type: String,
-      enum: ['admin', 'user'],
       default: 'user',
-      required: true,
     },
     isAdmin: {
       type: Boolean,
       default: false,
+    },
+    department: {
+      type: String,
+      default: '',
+    },
+    designation: {
+      type: String,
+      default: '',
     },
     lastLogin: {
       type: Date,
@@ -40,6 +50,7 @@ const UserSchema = new Schema(
     },
   },
   {
+    strict: false,
     timestamps: false,
   }
 );

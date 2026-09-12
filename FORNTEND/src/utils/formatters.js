@@ -4,8 +4,12 @@
 
 export const formatCrores = (amountInCrores) => {
   if (amountInCrores === undefined || amountInCrores === null) return '₹0 Cr';
-  const num = Number(amountInCrores);
+  let num = Number(amountInCrores);
   if (isNaN(num)) return '₹0 Cr';
+  // If stored in raw Rupees (e.g. 12,500,000,000), convert to Crores (1 Crore = 10,000,000)
+  if (Math.abs(num) >= 10000000) {
+    num = num / 10000000;
+  }
   return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Cr`;
 };
 

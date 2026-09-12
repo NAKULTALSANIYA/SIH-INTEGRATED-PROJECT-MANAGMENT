@@ -4,6 +4,7 @@ import { milestoneApi, projectApi } from '../../api';
 import Card from '../../components/common/Card/Card';
 import Button from '../../components/common/Button/Button';
 import Badge from '../../components/common/Badge/Badge';
+import { SkeletonMilestones } from '../../components/common/Skeleton';
 import { Calendar, ExternalLink, Clock, FolderGit2 } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 
@@ -98,7 +99,9 @@ const MilestonesPage = () => {
         title={selectedProject ? `Checkpoints: ${selectedProject.name}` : 'Milestones'}
         subtitle="Ordered sequential deliverables and audit targets"
       >
-        {milestones.length === 0 ? (
+        {isLoading ? (
+          <SkeletonMilestones count={5} />
+        ) : milestones.length === 0 ? (
           <div className="py-8 text-center text-slate-400 text-xs sm:text-sm">
             No milestones registered for this project yet.
           </div>

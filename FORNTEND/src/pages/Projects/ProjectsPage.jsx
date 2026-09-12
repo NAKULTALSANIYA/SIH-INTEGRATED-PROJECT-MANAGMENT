@@ -17,6 +17,7 @@ import { addToast } from '../../features/ui/uiSlice';
 import Button from '../../components/common/Button/Button';
 import Badge from '../../components/common/Badge/Badge';
 import Modal from '../../components/common/Modal/Modal';
+import { Skeleton, SkeletonCardList } from '../../components/common/Skeleton';
 import {
   Search,
   Filter,
@@ -199,7 +200,31 @@ const ProjectsPage = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {projects.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`skel-row-${i}`} className="hover:bg-slate-50/50">
+                  <td className="px-4 py-3.5">
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-4 w-48" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-3.5 w-28" /></td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-4 w-20" /></td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-4 w-20" /></td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex flex-col gap-1">
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-2.5 w-16" />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-3.5 w-24" /></td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                  <td className="px-4 py-3.5"><Skeleton className="h-2 w-20 rounded-full" /></td>
+                  <td className="px-4 py-3.5 text-right"><Skeleton className="h-7 w-16 ml-auto rounded-lg" /></td>
+                </tr>
+              ))
+            ) : projects.length === 0 ? (
               <tr>
                 <td colSpan={9} className="text-center py-12 text-slate-400">
                   No projects matched the selected filters.
@@ -328,7 +353,9 @@ const ProjectsPage = () => {
 
       {/* MOBILE: High-Fidelity Responsive Project Cards (displayed on < md) */}
       <div className="md:hidden flex flex-col gap-3.5">
-        {projects.length === 0 ? (
+        {isLoading ? (
+          <SkeletonCardList count={4} />
+        ) : projects.length === 0 ? (
           <div className="bg-white rounded-xl p-8 border border-slate-200 text-center text-slate-400 text-xs">
             No projects matched the selected filters.
           </div>

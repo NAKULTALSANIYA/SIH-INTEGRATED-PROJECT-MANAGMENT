@@ -4,7 +4,14 @@ const ProjectSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      trim: true,
+    },
+    title: {
+      type: String,
+      trim: true,
+    },
+    code: {
+      type: String,
       trim: true,
     },
     description: {
@@ -13,15 +20,17 @@ const ProjectSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['planning', 'active', 'on-hold', 'completed', 'cancelled'],
       default: 'planning',
-      required: true,
     },
     startDate: {
       type: Date,
       default: null,
     },
     endDate: {
+      type: Date,
+      default: null,
+    },
+    expectedCompletionDate: {
       type: Date,
       default: null,
     },
@@ -33,10 +42,50 @@ const ProjectSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    utilizedBudget: {
+      type: Number,
+      default: 0,
+    },
+    progress: {
+      type: Number,
+      default: 0,
+    },
+    priority: {
+      type: String,
+      default: 'Medium',
+    },
+    department: {
+      type: String,
+      default: '',
+    },
+    ministry: {
+      type: String,
+      default: '',
+    },
+    state: {
+      type: String,
+      default: '',
+    },
+    district: {
+      type: String,
+      default: '',
+    },
+    category: {
+      type: String,
+      default: '',
+    },
+    responsibleOfficer: {
+      type: String,
+      default: '',
+    },
+    milestones: {
+      type: Array,
+      default: [],
+    },
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
     },
     teamId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -58,6 +107,7 @@ const ProjectSchema = new mongoose.Schema(
     },
   },
   {
+    strict: false,
     timestamps: false,
   }
 );
