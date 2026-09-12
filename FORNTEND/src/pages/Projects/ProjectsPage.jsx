@@ -1,401 +1,484 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import {
+  fetchProjects,
   selectFilteredProjects,
-  selectProjectFilter,
+  selectProjectsLoading,
+  selectProjectsFilters,
   setStatusFilter,
   setSearchQuery,
-  addLocalProject,
-  deleteLocalProject,
-  updateProjectStatus,
+  resetFilters,
+  updateProjectStatusThunk,
+  deleteProjectThunk,
 } from '../../features/projects/projectSlice';
+import { selectIsAdmin } from '../../features/auth/authSlice';
 import { addToast } from '../../features/ui/uiSlice';
-import Card from '../../components/common/Card/Card';
 import Button from '../../components/common/Button/Button';
 import Badge from '../../components/common/Badge/Badge';
 import Modal from '../../components/common/Modal/Modal';
-import Input from '../../components/common/Input/Input';
-import { Plus, Search, Trash2, Calendar, Users, Tag, CheckCircle } from 'lucide-react';
-import { PROJECT_STATUS } from '../../utils/constants';
-import { formatDate } from '../../utils/formatters';
+import {
+  Search,
+  Filter,
+  PlusCircle,
+  Eye,
+  RefreshCw,
+  Edit3,
+  Trash2,
+  Calendar,
+  Building2,
+  User,
+  X,
+} from 'lucide-react';
+import { formatCrores, formatDate } from '../../utils/formatters';
 
-const statusTabs = ['ALL', 'Planning', 'In Progress', 'In Review', 'Completed'];
+const statusOptions = ['ALL', 'planning', 'active', 'on-hold', 'completed', 'cancelled'];
 
 const ProjectsPage = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+
   const projects = useAppSelector(selectFilteredProjects);
-  const { status: currentStatus, search } = useAppSelector(selectProjectFilter);
+  const isLoading = useAppSelector(selectProjectsLoading);
+  const filters = useAppSelector(selectProjectsFilters);
+  const isAdmin = useAppSelector(selectIsAdmin);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Smart Automation');
-  const [description, setDescription] = useState('');
-  const [budget, setBudget] = useState('$50,000');
-  const [lead, setLead] = useState('Nakul Talsaniya');
+  // Status update modal state
+  const [selectedProjectForStatus, setSelectedProjectForStatus] = useState(null);
+  const [newStatus, setNewStatus] = useState('active');
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
 
-  const handleCreate = (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
+  useEffect(() => {
+    dispatch(fetchProjects());
+  }, [dispatch]);
 
-    dispatch(
-      addLocalProject({
-        title,
-        category,
-        description,
-        status: PROJECT_STATUS.PLANNING,
-        progress: 0,
-        teamSize: 5,
-        budget,
-        lead,
-        dueDate: '2026-12-01',
-        tags: ['Hackathon', 'SIH', category.split(' ')[0]],
+  const handleOpenStatusModal = (project) => {
+    setSelectedProjectForStatus(project);
+    setNewStatus(project.status || 'planning');
+    setStatusModalOpen(true);
+  };
+
+  const handleSaveStatus = async () => {
+    if (!selectedProjectForStatus) return;
+    const projId = selectedProjectForStatus._id || selectedProjectForStatus.id;
+
+    await dispatch(
+      updateProjectStatusThunk({
+        id: projId,
+        status: newStatus,
       })
     );
 
     dispatch(
       addToast({
         type: 'success',
-        message: `Project "${title}" registered successfully!`,
+        message: `Project status updated to ${newStatus}`,
       })
     );
 
-    setTitle('');
-    setDescription('');
-    setIsModalOpen(false);
+    setStatusModalOpen(false);
   };
 
-  const handleDelete = (id, projTitle) => {
-    if (window.confirm(`Are you sure you want to delete "${projTitle}"?`)) {
-      dispatch(deleteLocalProject(id));
-      dispatch(
-        addToast({
-          type: 'info',
-          message: `Project deleted from workspace.`,
-        })
-      );
+  const handleDeleteProject = async (project) => {
+    const projId = project._id || project.id;
+    if (window.confirm(`Are you sure you want to remove project "${project.name}"?`)) {
+      await dispatch(deleteProjectThunk(projId));
+      dispatch(addToast({ type: 'info', message: `Project removed from registry.` }));
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header & Actions */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px',
-        }}
-      >
+    <div className="flex flex-col gap-4 sm:gap-5">
+      {/* Top Title & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Hackathon Projects Portfolio
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            Government Projects Directory
           </h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Tracking milestones, teams, and deliverables across all registered domains.
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Official registry of high-impact public infrastructure schemes and capital projects
           </p>
         </div>
 
-        <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-          Register Project
-        </Button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div
-        className="glass-panel"
-        style={{
-          padding: '14px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '14px',
-        }}
-      >
-        {/* Status Tabs */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {statusTabs.map((tab) => {
-            const isActive =
-              (tab === 'ALL' && currentStatus === 'ALL') ||
-              tab.toLowerCase() === currentStatus.toLowerCase();
-            return (
-              <button
-                key={tab}
-                onClick={() => dispatch(setStatusFilter(tab))}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                  backgroundColor: isActive ? 'var(--primary-600)' : 'var(--bg-hover)',
-                  color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                  transition: 'all var(--transition-fast)',
-                }}
-              >
-                {tab}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Live Search */}
-        <div style={{ minWidth: '260px' }}>
-          <Input
-            placeholder="Search by name, tag, or domain..."
-            icon={Search}
-            value={search}
-            onChange={(e) => dispatch(setSearchQuery(e.target.value))}
-          />
-        </div>
-      </div>
-
-      {/* Projects Grid */}
-      {projects.length === 0 ? (
-        <div
-          className="glass-panel"
-          style={{
-            padding: '60px 20px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem' }}>
-            No projects found matching the current criteria.
-          </p>
-          <Button variant="secondary" size="sm" onClick={() => dispatch(setStatusFilter('ALL'))}>
-            Reset Filters
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={RefreshCw}
+            isLoading={isLoading}
+            onClick={() => dispatch(fetchProjects())}
+            className="flex-1 sm:flex-initial"
+          >
+            Refresh
           </Button>
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-            gap: '20px',
-          }}
-        >
-          {projects.map((project) => (
-            <Card
-              key={project.id}
-              hoverable
-              title={project.title}
-              subtitle={project.category}
-              headerAction={<Badge status={project.status} />}
-              footer={
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <Calendar size={14} />
-                    <span>Due {formatDate(project.dueDate)}</span>
-                  </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {project.status !== PROJECT_STATUS.COMPLETED && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        icon={CheckCircle}
-                        title="Mark Project Complete"
-                        onClick={() => {
-                          dispatch(
-                            updateProjectStatus({
-                              id: project.id,
-                              status: PROJECT_STATUS.COMPLETED,
-                            })
-                          );
-                          dispatch(
-                            addToast({
-                              type: 'success',
-                              message: `Project marked as Completed!`,
-                            })
-                          );
-                        }}
-                      />
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      icon={Trash2}
-                      onClick={() => handleDelete(project.id, project.title)}
-                    />
-                  </div>
-                </div>
-              }
+          {isAdmin && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={PlusCircle}
+              onClick={() => navigate('/projects/new')}
+              className="flex-1 sm:flex-initial"
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                  {project.description}
-                </p>
-
-                {/* Progress */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    <span>Completion</span>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{project.progress}%</span>
-                  </div>
-                  <div
-                    style={{
-                      height: '6px',
-                      backgroundColor: 'var(--bg-active)',
-                      borderRadius: 'var(--radius-full)',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${project.progress}%`,
-                        backgroundColor:
-                          project.progress === 100
-                            ? 'var(--status-success)'
-                            : 'var(--primary-500)',
-                        borderRadius: 'var(--radius-full)',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Meta details */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted)',
-                    paddingTop: '8px',
-                    borderTop: '1px dashed var(--border-color)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Users size={14} />
-                    <span>Lead: {project.lead}</span>
-                  </div>
-                  <span>Team: {project.teamSize} members</span>
-                </div>
-
-                {/* Tags */}
-                {project.tags && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {project.tags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        style={{
-                          fontSize: '0.7rem',
-                          backgroundColor: 'var(--bg-hover)',
-                          color: 'var(--text-secondary)',
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: '1px solid var(--border-color)',
-                        }}
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Card>
-          ))}
+              Register Project
+            </Button>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Register New Hackathon Project"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleCreate}>
-              Save to Redux State
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Input
-            label="Project Title"
-            placeholder="e.g. AI-driven Drone Pipeline Inspection"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
+      {/* Filter & Search Bar */}
+      <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200 shadow-xs flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        {/* Search */}
+        <div className="relative flex-1 min-w-0 w-full sm:max-w-md">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
           />
+          <input
+            type="text"
+            placeholder="Search schemes by title or description..."
+            value={filters.search}
+            onChange={(e) => dispatch(setSearchQuery(e.target.value))}
+            className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition-all"
+          />
+          {filters.search && (
+            <button
+              onClick={() => dispatch(setSearchQuery(''))}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-              Domain / Track
+        {/* Status Filter & Clear */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 shrink-0">
+            <Filter size={13} /> Filter:
+          </span>
+
+          <select
+            value={filters.status}
+            onChange={(e) => dispatch(setStatusFilter(e.target.value))}
+            className="flex-1 sm:flex-initial px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-600"
+          >
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                Status: {status.toUpperCase()}
+              </option>
+            ))}
+          </select>
+
+          {(filters.search || filters.status !== 'ALL') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => dispatch(resetFilters())}
+              className="text-xs text-rose-600 hover:bg-rose-50"
+            >
+              Reset
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* DESKTOP & TABLET: Comprehensive Data Table (hidden on mobile < md) */}
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
+        <table className="w-full text-left text-sm text-slate-700">
+          <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3.5">Scheme Name</th>
+              <th className="px-4 py-3.5">Client / Nodal Body</th>
+              <th className="px-4 py-3.5">Sanctioned Budget</th>
+              <th className="px-4 py-3.5">Utilized Outlay</th>
+              <th className="px-4 py-3.5">Timeline</th>
+              <th className="px-4 py-3.5">Assigned Officer</th>
+              <th className="px-4 py-3.5">Status</th>
+              <th className="px-4 py-3.5">Progress</th>
+              <th className="px-4 py-3.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {projects.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="text-center py-12 text-slate-400">
+                  No projects matched the selected filters.
+                </td>
+              </tr>
+            ) : (
+              projects.map((project) => {
+                const projId = project._id || project.id;
+                const budget = Number(project.budget || 0);
+                const used = Number(project.usedbudget || 0);
+                const progressPct =
+                  budget > 0 ? Math.min(100, Math.round((used / budget) * 100)) : 0;
+                const clientName = project.clientId?.name || 'N/A';
+                const teamOrOwner =
+                  project.teamId?.name || project.ownerId?.username || 'Mission Cell';
+
+                return (
+                  <tr key={projId} className="hover:bg-slate-50/80 transition-colors">
+                    {/* Name */}
+                    <td className="px-4 py-3.5 max-w-xs">
+                      <div className="flex flex-col">
+                        <span
+                          className="font-semibold text-slate-900 hover:text-blue-700 cursor-pointer"
+                          onClick={() => navigate(`/projects/${projId}`)}
+                        >
+                          {project.name}
+                        </span>
+                        <span className="text-xs text-slate-400 truncate">
+                          {project.description || 'Infrastructure Scheme'}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Client / Agency */}
+                    <td className="px-4 py-3.5 text-xs text-slate-600 max-w-[160px] truncate">
+                      {clientName}
+                    </td>
+
+                    {/* Budget */}
+                    <td className="px-4 py-3.5 font-semibold text-slate-900">
+                      {formatCrores(budget)}
+                    </td>
+
+                    {/* Utilized */}
+                    <td className="px-4 py-3.5 font-semibold text-emerald-600">
+                      {formatCrores(used)}
+                    </td>
+
+                    {/* Timeline */}
+                    <td className="px-4 py-3.5 text-xs text-slate-600">
+                      <div>{formatDate(project.startDate)}</div>
+                      <div className="text-slate-400 text-[11px]">
+                        to {formatDate(project.endDate)}
+                      </div>
+                    </td>
+
+                    {/* Assigned */}
+                    <td className="px-4 py-3.5 text-xs text-slate-600 truncate max-w-[140px]">
+                      {teamOrOwner}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-3.5">
+                      <Badge status={project.status} />
+                    </td>
+
+                    {/* Expenditure Progress */}
+                    <td className="px-4 py-3.5 min-w-[100px]">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                          <div
+                            className={`h-full rounded-full ${
+                              project.status === 'completed'
+                                ? 'bg-emerald-500'
+                                : progressPct > 80
+                                ? 'bg-amber-500'
+                                : 'bg-blue-600'
+                            }`}
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] font-bold text-slate-600">
+                          {progressPct}%
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => navigate(`/projects/${projId}`)}
+                          className="p-1.5 text-slate-400 hover:text-blue-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+
+                        {isAdmin && (
+                          <>
+                            <button
+                              onClick={() => handleOpenStatusModal(project)}
+                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              title="Update Status"
+                            >
+                              <Edit3 size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProject(project)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="Delete Project"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* MOBILE: High-Fidelity Responsive Project Cards (displayed on < md) */}
+      <div className="md:hidden flex flex-col gap-3.5">
+        {projects.length === 0 ? (
+          <div className="bg-white rounded-xl p-8 border border-slate-200 text-center text-slate-400 text-xs">
+            No projects matched the selected filters.
+          </div>
+        ) : (
+          projects.map((project) => {
+            const projId = project._id || project.id;
+            const budget = Number(project.budget || 0);
+            const used = Number(project.usedbudget || 0);
+            const progressPct =
+              budget > 0 ? Math.min(100, Math.round((used / budget) * 100)) : 0;
+            const clientName = project.clientId?.name || 'Central Nodal Agency';
+            const teamOrOwner =
+              project.teamId?.name || project.ownerId?.username || 'Executive Officer';
+
+            return (
+              <div
+                key={projId}
+                className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex flex-col gap-3"
+              >
+                {/* Top Row: Name + Status Badge */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3
+                      onClick={() => navigate(`/projects/${projId}`)}
+                      className="font-bold text-sm text-slate-900 leading-snug hover:text-blue-700 cursor-pointer break-words"
+                    >
+                      {project.name}
+                    </h3>
+                    {project.description && (
+                      <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">
+                        {project.description}
+                      </p>
+                    )}
+                  </div>
+                  <Badge status={project.status} className="shrink-0" />
+                </div>
+
+                {/* Client & Officer Tags */}
+                <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600">
+                  <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/80 font-medium truncate max-w-[160px]">
+                    <Building2 size={12} className="text-slate-400 shrink-0" />
+                    {clientName}
+                  </span>
+                  <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/80 font-medium truncate max-w-[140px]">
+                    <User size={12} className="text-slate-400 shrink-0" />
+                    {teamOrOwner}
+                  </span>
+                </div>
+
+                {/* Financials & Progress Bar */}
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/70 flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Sanctioned: <strong>{formatCrores(budget)}</strong></span>
+                    <span className="text-emerald-700 font-semibold">Incurred: {formatCrores(used)}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 rounded-full"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-700">{progressPct}%</span>
+                  </div>
+                </div>
+
+                {/* Timeline */}
+                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <Calendar size={13} className="text-slate-400 shrink-0" />
+                  <span>
+                    {formatDate(project.startDate)} → {formatDate(project.endDate)}
+                  </span>
+                </div>
+
+                {/* Actions Row */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={Eye}
+                    onClick={() => navigate(`/projects/${projId}`)}
+                    className="flex-1 text-xs justify-center"
+                  >
+                    View Details
+                  </Button>
+
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handleOpenStatusModal(project)}
+                        className="p-2 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                        title="Change Status"
+                      >
+                        <Edit3 size={15} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProject(project)}
+                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                        title="Delete Project"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* STATUS UPDATE MODAL */}
+      <Modal
+        isOpen={statusModalOpen}
+        onClose={() => setStatusModalOpen(false)}
+        title="Update Operational Status"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-xs text-slate-600">
+            Select the new operational lifecycle status for{' '}
+            <strong className="text-slate-900">{selectedProjectForStatus?.name}</strong>:
+          </p>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Lifecycle Stage
             </label>
             <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              style={{
-                backgroundColor: 'var(--bg-input)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                padding: '10px 14px',
-                color: 'var(--text-primary)',
-                fontSize: '0.875rem',
-                outline: 'none',
-              }}
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-blue-600 capitalize"
             >
-              <option value="Smart Automation">Smart Automation</option>
-              <option value="Disaster Management">Disaster Management</option>
-              <option value="Agriculture & Rural Dev">Agriculture & Rural Dev</option>
-              <option value="Smart Water & Sanitation">Smart Water & Sanitation</option>
-              <option value="GovTech & Cybersecurity">GovTech & Cybersecurity</option>
+              <option value="planning">Planning (Initial sanctioning)</option>
+              <option value="active">Active (Ground execution ongoing)</option>
+              <option value="on-hold">On-Hold (Blocked / Awaiting clearance)</option>
+              <option value="completed">Completed (Commissioned & verified)</option>
+              <option value="cancelled">Cancelled (Terminated)</option>
             </select>
           </div>
 
-          <Input
-            label="Project Lead"
-            placeholder="Lead Developer / PM"
-            value={lead}
-            onChange={(e) => setLead(e.target.value)}
-          />
-
-          <Input
-            label="Allocated Budget"
-            placeholder="$50,000"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-          />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-              Project Overview
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Describe the solution architecture and deliverables..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              style={{
-                backgroundColor: 'var(--bg-input)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                padding: '10px 14px',
-                color: 'var(--text-primary)',
-                fontSize: '0.875rem',
-                outline: 'none',
-                resize: 'vertical',
-              }}
-            />
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-2.5 pt-2">
+            <Button variant="ghost" onClick={() => setStatusModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSaveStatus}>
+              Save Status
+            </Button>
           </div>
-        </form>
+        </div>
       </Modal>
     </div>
   );

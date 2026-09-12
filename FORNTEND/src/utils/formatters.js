@@ -1,15 +1,22 @@
 /**
- * Utility functions for formatting strings, dates, and numbers
+ * Official Indian Public Sector Formatters
  */
+
+export const formatCrores = (amountInCrores) => {
+  if (amountInCrores === undefined || amountInCrores === null) return '₹0 Cr';
+  const num = Number(amountInCrores);
+  if (isNaN(num)) return '₹0 Cr';
+  return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Cr`;
+};
 
 export const formatDate = (dateString, options = {}) => {
   if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
       month: 'short',
-      day: 'numeric',
       year: 'numeric',
       ...options,
     }).format(date);
@@ -18,55 +25,45 @@ export const formatDate = (dateString, options = {}) => {
   }
 };
 
-export const formatRelativeTime = (dateString) => {
-  if (!dateString) return '';
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffInSeconds = Math.floor((now - date) / 1000);
-
-  if (diffInSeconds < 60) return 'Just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  return formatDate(dateString);
-};
-
-export const getInitials = (name = '') => {
-  if (!name) return 'U';
-  return name
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-};
-
-export const truncateText = (str = '', maxLength = 50) => {
-  if (!str) return '';
-  if (str.length <= maxLength) return str;
-  return `${str.slice(0, maxLength)}...`;
-};
-
 export const getStatusBadgeClass = (status) => {
   switch (status?.toLowerCase()) {
     case 'completed':
     case 'done':
-      return 'badge-success';
+    case 'mitigated':
+    case 'closed':
+      return 'badge-completed';
+    case 'active':
+    case 'in-progress':
     case 'in progress':
+      return 'badge-inprogress';
+    case 'delayed':
+    case 'critical':
+    case 'cancelled':
+    case 'blocked':
+      return 'badge-delayed';
+    case 'on-hold':
     case 'review':
-      return 'badge-primary';
-    case 'planning':
-    case 'todo':
-    case 'to do':
-      return 'badge-info';
-    case 'urgent':
     case 'high':
-      return 'badge-error';
-    case 'medium':
-      return 'badge-warning';
+      return 'badge-approved';
+    case 'planning':
+    case 'pending':
+    case 'todo':
+    case 'open':
     case 'low':
-      return 'badge-info';
+    case 'medium':
     default:
-      return 'badge-primary';
+      return 'badge-planning';
   }
+};
+
+export const getInitials = (name = '') => {
+  if (!name) return 'GOV';
+  const cleaned = name.replace(/^(Shri|Dr\.|Prof\.|Smt\.|Er\.)\s+/i, '');
+  return cleaned
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 };

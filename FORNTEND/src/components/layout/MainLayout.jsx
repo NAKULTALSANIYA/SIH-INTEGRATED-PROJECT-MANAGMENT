@@ -1,37 +1,79 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { useAppDispatch } from '../../app/hooks';
+import { fetchMasterData } from '../../features/master/masterSlice';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 
 const MainLayout = () => {
+  const dispatch = useAppDispatch();
+  const location = useLocation();
+
+  useEffect(() => {
+    dispatch(fetchMasterData());
+  }, [dispatch]);
+
+  // Breadcrumb generator
+  const pathnames = location.pathname.split('/').filter((x) => x);
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-app)' }}>
-      {/* Collapsible Left Sidebar */}
-      <Sidebar />
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 antialiased">
+      {/* Indian National Tricolor Ribbon */}
+      <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-white to-emerald-600 shadow-xs shrink-0" />
 
-      {/* Main Content Area */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-        }}
-      >
-        <Navbar />
+      <div className="flex flex-1 min-h-[calc(100vh-4px)] w-full relative">
+        {/* Sidebar (Desktop persistent + Mobile off-canvas drawer) */}
+        <Sidebar />
 
-        <main
-          className="animate-fade-in"
-          style={{
-            flex: 1,
-            padding: '24px 32px',
-            maxWidth: '1600px',
-            width: '100%',
-            margin: '0 auto',
-          }}
-        >
-          <Outlet />
-        </main>
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 w-full">
+          <Navbar />
+
+          {/* Breadcrumb strip with horizontal overflow handling */}
+          <div className="px-3.5 sm:px-6 lg:px-8 py-2 bg-white border-b border-slate-200 text-xs text-slate-500 flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none">
+            <span className="font-semibold text-slate-700 shrink-0">National PMIS</span>
+            <span className="shrink-0">/</span>
+            {pathnames.length === 0 ? (
+              <span className="text-blue-700 font-semibold shrink-0">Central Dashboard</span>
+            ) : (
+              pathnames.map((name, index) => {
+                const isLast = index === pathnames.length - 1;
+                const formattedName =
+                  name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' ');
+                return (
+                  <React.Fragment key={name}>
+                    <span
+                      className={`shrink-0 ${
+                        isLast ? 'text-blue-700 font-semibold' : 'text-slate-500 font-normal'
+                      }`}
+                    >
+                      {formattedName}
+                    </span>
+                    {!isLast && <span className="shrink-0">/</span>}
+                  </React.Fragment>
+                );
+              })
+            )}
+          </div>
+
+          <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto">
+            <Outlet />
+          </main>
+
+          {/* Government Portal Footer */}
+          <footer className="px-3.5 sm:px-6 lg:px-8 py-4 border-t border-slate-200 bg-white flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs text-slate-500 gap-2 text-center sm:text-left">
+            <div>
+              <span>Government Integrated Project Monitoring Platform • Digital India</span>
+            </div>
+            <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-4">
+              <span>Security Audited</span>
+              <span>•</span>
+              <span>NIC Framework Standard</span>
+              <span>•</span>
+              <span>REST API Connected</span>
+            </div>
+          </footer>
+        </div>
       </div>
     </div>
   );

@@ -7,33 +7,14 @@ const NotFoundPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '60vh',
-        textAlign: 'center',
-        gap: '16px',
-      }}
-    >
-      <h1
-        style={{
-          fontSize: '5rem',
-          fontWeight: 800,
-          background: 'linear-gradient(135deg, var(--primary-400), var(--accent-violet))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          lineHeight: 1,
-        }}
-      >
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-4">
+      <h1 className="text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 leading-none">
         404
       </h1>
-      <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+      <h2 className="text-xl font-bold text-slate-800">
         Page Not Found
       </h2>
-      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: '400px' }}>
+      <p className="text-sm text-slate-500 max-w-md">
         The requested resource or route does not exist in the project management console.
       </p>
       <Button variant="primary" icon={Home} onClick={() => navigate('/')}>
@@ -44,3 +25,4 @@ const NotFoundPage = () => {
 };
 
 export default NotFoundPage;
+

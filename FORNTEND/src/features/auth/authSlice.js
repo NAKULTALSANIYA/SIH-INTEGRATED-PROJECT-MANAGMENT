@@ -3,14 +3,14 @@ import authApi from '../../api/authApi';
 import { APP_CONFIG } from '../../utils/constants';
 import { storage } from '../../utils/storage';
 
-// Get cached credentials or initialize default guest/demo session
-const storedToken = storage.get(APP_CONFIG.TOKEN_KEY, 'demo-jwt-token-sih-2026');
+const storedToken = storage.get(APP_CONFIG.TOKEN_KEY, 'gov_token_admin_usr-gov-001');
 const storedUser = storage.get(APP_CONFIG.USER_KEY, {
-  id: 'usr-1',
-  name: 'Nakul Talsaniya',
-  email: 'nakul@sih.gov.in',
-  role: 'Project Manager',
-  avatar: null,
+  id: 'usr-gov-001',
+  name: 'Shri R. K. Verma, IAS',
+  email: 'admin@gov.in',
+  role: 'ADMIN',
+  department: 'PMO - Infrastructure Monitoring Group',
+  designation: 'Joint Secretary & Project Director',
 });
 
 const initialState = {
@@ -21,56 +21,29 @@ const initialState = {
   error: null,
 };
 
-// Async Thunks
 export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await authApi.login(credentials);
-      storage.set(APP_CONFIG.TOKEN_KEY, response.token);
-      storage.set(APP_CONFIG.USER_KEY, response.user);
-      return response;
+      const data = await authApi.login(credentials);
+      storage.set(APP_CONFIG.TOKEN_KEY, data.token);
+      storage.set(APP_CONFIG.USER_KEY, data.user);
+      return data;
     } catch (err) {
-      // Fallback for offline/demo development
-      if (!err.status) {
-        const demoUser = {
-          id: 'usr-1',
-          name: credentials.email.split('@')[0] || 'Demo User',
-          email: credentials.email,
-          role: 'Project Manager',
-        };
-        const demoToken = 'demo-token-' + Date.now();
-        storage.set(APP_CONFIG.TOKEN_KEY, demoToken);
-        storage.set(APP_CONFIG.USER_KEY, demoUser);
-        return { user: demoUser, token: demoToken };
-      }
-      return rejectWithValue(err.message || 'Login failed');
+      return rejectWithValue(err.message || 'Login failed. Verify credentials.');
     }
   }
 );
 
-export const registerUser = createAsyncThunk(
-  'auth/register',
-  async (userData, { rejectWithValue }) => {
-    try {
-      const response = await authApi.register(userData);
-      storage.set(APP_CONFIG.TOKEN_KEY, response.token);
-      storage.set(APP_CONFIG.USER_KEY, response.user);
-      return response;
-    } catch (err) {
-      return rejectWithValue(err.message || 'Registration failed');
-    }
-  }
-);
-
-export const fetchUserProfile = createAsyncThunk(
+export const fetchProfile = createAsyncThunk(
   'auth/fetchProfile',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await authApi.getProfile();
-      return response;
+      const user = await authApi.getProfile();
+      storage.set(APP_CONFIG.USER_KEY, user);
+      return user;
     } catch (err) {
-      return rejectWithValue(err.message || 'Failed to fetch profile');
+      return rejectWithValue(err.message || 'Failed to fetch user profile');
     }
   }
 );
@@ -79,14 +52,6 @@ export const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (state, action) => {
-      const { user, token } = action.payload;
-      state.user = user;
-      state.token = token;
-      state.isAuthenticated = true;
-      storage.set(APP_CONFIG.TOKEN_KEY, token);
-      storage.set(APP_CONFIG.USER_KEY, user);
-    },
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -95,13 +60,39 @@ export const authSlice = createSlice({
       storage.remove(APP_CONFIG.TOKEN_KEY);
       storage.remove(APP_CONFIG.USER_KEY);
     },
-    clearAuthError: (state) => {
+    switchRoleDemo: (state, action) => {
+      const role = action.payload; // 'ADMIN' | 'VIEWER'
+      if (role === 'ADMIN') {
+        state.user = {
+          id: 'usr-gov-001',
+          name: 'Shri R. K. Verma, IAS',
+          email: 'admin@gov.in',
+          role: 'ADMIN',
+          department: 'PMO - Infrastructure Monitoring Group',
+          designation: 'Joint Secretary & Project Director',
+        };
+        state.token = 'gov_token_admin_usr-gov-001';
+      } else {
+        state.user = {
+          id: 'usr-gov-002',
+          name: 'Dr. Ananya Iyer',
+          email: 'viewer@gov.in',
+          role: 'VIEWER',
+          department: 'NITI Aayog / Citizen Audit Wing',
+          designation: 'Principal Project Evaluator',
+        };
+        state.token = 'gov_token_viewer_usr-gov-002';
+      }
+      state.isAuthenticated = true;
+      storage.set(APP_CONFIG.TOKEN_KEY, state.token);
+      storage.set(APP_CONFIG.USER_KEY, state.user);
+    },
+    clearError: (state) => {
       state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      // Login
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -116,32 +107,18 @@ export const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      // Register
-      .addCase(registerUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.isAuthenticated = true;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-      // Profile
-      .addCase(fetchUserProfile.fulfilled, (state, action) => {
+      .addCase(fetchProfile.fulfilled, (state, action) => {
         state.user = action.payload;
       });
   },
 });
 
-export const { setCredentials, logout, clearAuthError } = authSlice.actions;
+export const { logout, switchRoleDemo, clearError } = authSlice.actions;
 
 export const selectCurrentUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
+export const selectIsAdmin = (state) => state.auth.user?.role === 'ADMIN';
+export const selectUserRole = (state) => state.auth.user?.role || 'VIEWER';
 export const selectAuthLoading = (state) => state.auth.isLoading;
 export const selectAuthError = (state) => state.auth.error;
 

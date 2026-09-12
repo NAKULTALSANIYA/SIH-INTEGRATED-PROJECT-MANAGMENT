@@ -2,7 +2,7 @@ import axios from 'axios';
 import { APP_CONFIG } from '../utils/constants';
 import { storage } from '../utils/storage';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 /**
  * Pre-configured Axios instance with request and response interceptors
@@ -33,16 +33,14 @@ axiosClient.interceptors.request.use(
 // Response Interceptor: Global Error Normalization & 401 handling
 axiosClient.interceptors.response.use(
   (response) => {
-    return response.data;
+    return response.data?.data !== undefined ? response.data.data : response.data;
   },
   (error) => {
     const status = error.response ? error.response.status : null;
 
     if (status === 401) {
-      // Clear credentials on unauthorized access
       storage.remove(APP_CONFIG.TOKEN_KEY);
       storage.remove(APP_CONFIG.USER_KEY);
-      // Optional event dispatch or redirection can be hooked here
     }
 
     const customError = {

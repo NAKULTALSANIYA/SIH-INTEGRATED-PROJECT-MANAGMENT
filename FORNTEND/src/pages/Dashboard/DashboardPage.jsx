@@ -1,443 +1,499 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { selectAllProjects, addLocalProject } from '../../features/projects/projectSlice';
-import { selectAllTasks, addLocalTask, updateTaskStatus } from '../../features/tasks/taskSlice';
+import {
+  fetchDashboardStats,
+  selectDashboardData,
+  selectDashboardLoading,
+} from '../../features/dashboard/dashboardSlice';
+import { selectIsAdmin } from '../../features/auth/authSlice';
 import { addToast } from '../../features/ui/uiSlice';
+import { reportApi } from '../../api';
 import Card from '../../components/common/Card/Card';
 import Button from '../../components/common/Button/Button';
 import Badge from '../../components/common/Badge/Badge';
-import Modal from '../../components/common/Modal/Modal';
-import Input from '../../components/common/Input/Input';
 import {
-  FolderKanban,
+  Building2,
   CheckCircle2,
+  AlertTriangle,
   Clock,
+  IndianRupee,
   TrendingUp,
-  Plus,
-  ArrowUpRight,
-  Sparkles,
-  Layers,
+  PlusCircle,
+  Download,
+  RefreshCw,
+  ExternalLink,
+  ChevronRight,
+  Calendar,
 } from 'lucide-react';
-import { PROJECT_STATUS, TASK_STATUS, TASK_PRIORITY } from '../../utils/constants';
-import { formatDate } from '../../utils/formatters';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import { formatCrores, formatDate } from '../../utils/formatters';
 
 const DashboardPage = () => {
   const dispatch = useAppDispatch();
-  const projects = useAppSelector(selectAllProjects);
-  const tasks = useAppSelector(selectAllTasks);
+  const navigate = useNavigate();
+  const dashboardData = useAppSelector(selectDashboardData);
+  const isLoading = useAppSelector(selectDashboardLoading);
+  const isAdmin = useAppSelector(selectIsAdmin);
 
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  const [newProjectTitle, setNewProjectTitle] = useState('');
-  const [newProjectCategory, setNewProjectCategory] = useState('Smart Automation');
-  const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Derived Metrics
-  const totalProjects = projects.length;
-  const completedProjects = projects.filter((p) => p.status === PROJECT_STATUS.COMPLETED).length;
-  const activeTasks = tasks.filter((t) => t.status !== TASK_STATUS.DONE).length;
-  const completedTasks = tasks.filter((t) => t.status === TASK_STATUS.DONE).length;
-  const overallProgress = totalProjects
-    ? Math.round(projects.reduce((acc, p) => acc + (p.progress || 0), 0) / totalProjects)
-    : 0;
+  useEffect(() => {
+    dispatch(fetchDashboardStats());
+  }, [dispatch]);
 
-  const handleCreateProject = (e) => {
-    e.preventDefault();
-    if (!newProjectTitle.trim()) return;
-
-    dispatch(
-      addLocalProject({
-        title: newProjectTitle,
-        category: newProjectCategory,
-        description: newProjectDesc || 'Created from SIH dashboard quick launcher.',
-        status: PROJECT_STATUS.PLANNING,
-        progress: 10,
-        teamSize: 4,
-        lead: 'Nakul Talsaniya',
-        tags: ['SIH-2026', 'React', 'Redux'],
-      })
-    );
-
-    dispatch(
-      addToast({
-        type: 'success',
-        message: `Project "${newProjectTitle}" created successfully in Redux store!`,
-      })
-    );
-
-    setNewProjectTitle('');
-    setNewProjectDesc('');
-    setIsProjectModalOpen(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(fetchDashboardStats());
+    setRefreshing(false);
+    dispatch(addToast({ type: 'info', message: 'Dashboard analytics refreshed' }));
   };
 
-  const statCards = [
+  const handleExportCSV = () => {
+    reportApi.downloadCSV();
+    dispatch(addToast({ type: 'success', message: 'Downloading projects CSV report...' }));
+  };
+
+  if (isLoading && !dashboardData) {
+    return (
+      <div className="flex flex-col gap-4 sm:gap-6">
+        <div className="h-28 w-full bg-slate-200 rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div key={n} className="h-28 bg-slate-200 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const kpis = dashboardData?.kpis || {
+    totalProjects: 0,
+    activeProjects: 0,
+    planningProjects: 0,
+    onHoldProjects: 0,
+    completedProjects: 0,
+    totalBudget: 0,
+    utilizedBudget: 0,
+    remainingBudget: 0,
+    overallUtilizationPercent: 0,
+    totalTasks: 0,
+    openRisks: 0,
+  };
+
+  const statusDistribution = dashboardData?.statusDistribution || [];
+  const criticalRisks = dashboardData?.criticalRisks || [];
+  const recentProjects = dashboardData?.recentProjects || [];
+
+  const kpiCards = [
     {
       title: 'Total Projects',
-      value: totalProjects,
-      change: '+2 this month',
-      icon: FolderKanban,
-      color: 'var(--primary-500)',
-      bgColor: 'rgba(99, 102, 241, 0.1)',
+      value: kpis.totalProjects,
+      subtext: 'Central Project Repository',
+      icon: Building2,
+      borderClass: 'border-l-blue-600',
+      iconBg: 'bg-blue-50 text-blue-700 border-blue-200',
     },
     {
-      title: 'Active Tasks',
-      value: activeTasks,
-      change: `${tasks.length} total tasks`,
+      title: 'Active Schemes',
+      value: kpis.activeProjects || 0,
+      subtext: 'Currently in execution',
       icon: Clock,
-      color: 'var(--accent-amber)',
-      bgColor: 'rgba(245, 158, 11, 0.1)',
+      borderClass: 'border-l-sky-500',
+      iconBg: 'bg-sky-50 text-sky-700 border-sky-200',
     },
     {
-      title: 'Completed Tasks',
-      value: completedTasks,
-      change: `${Math.round((completedTasks / (tasks.length || 1)) * 100)}% completion rate`,
+      title: 'On-Hold Schemes',
+      value: kpis.onHoldProjects || 0,
+      subtext: 'Awaiting clearance / unblocking',
+      icon: AlertTriangle,
+      borderClass: 'border-l-rose-500',
+      iconBg: 'bg-rose-50 text-rose-700 border-rose-200',
+    },
+    {
+      title: 'Completed Schemes',
+      value: kpis.completedProjects || 0,
+      subtext: 'Fully commissioned',
       icon: CheckCircle2,
-      color: 'var(--status-success)',
-      bgColor: 'rgba(16, 185, 129, 0.1)',
+      borderClass: 'border-l-emerald-500',
+      iconBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     },
     {
-      title: 'Avg. Delivery Pace',
-      value: `${overallProgress}%`,
-      change: 'On schedule',
+      title: 'Sanctioned Budget',
+      value: formatCrores(kpis.totalBudget),
+      subtext: 'Total Financial Outlay',
+      icon: IndianRupee,
+      borderClass: 'border-l-indigo-500',
+      iconBg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    },
+    {
+      title: 'Expenditure Incurred',
+      value: formatCrores(kpis.utilizedBudget || kpis.usedbudget),
+      subtext: `${kpis.overallUtilizationPercent}% Budget Burn`,
       icon: TrendingUp,
-      color: 'var(--accent-cyan)',
-      bgColor: 'rgba(6, 182, 212, 0.1)',
+      borderClass: 'border-l-amber-500',
+      iconBg: 'bg-amber-50 text-amber-700 border-amber-200',
     },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {/* Welcome Banner */}
-      <div
-        className="glass-panel"
-        style={{
-          padding: '28px 32px',
-          background:
-            'linear-gradient(135deg, rgba(79, 70, 229, 0.18) 0%, rgba(139, 92, 246, 0.12) 100%)',
-          border: '1px solid rgba(99, 102, 241, 0.25)',
-          borderRadius: 'var(--radius-xl)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '20px',
-        }}
-      >
+    <div className="flex flex-col gap-4 sm:gap-6">
+      {/* Platform Header Banner */}
+      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-7 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-            <Sparkles size={20} color="var(--primary-400)" />
-            <span
-              style={{
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                color: 'var(--primary-400)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              Smart India Hackathon Workspace
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold uppercase tracking-wider bg-amber-500 text-slate-950">
+              PMO Integrated Hub
+            </span>
+            <span className="text-[11px] sm:text-xs text-slate-300">
+              Live Telemetry & Surveillance
             </span>
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Integrated Project Management Platform
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white">
+            Project Monitoring Platform
           </h1>
-          <p
-            style={{
-              fontSize: '0.9375rem',
-              color: 'var(--text-secondary)',
-              marginTop: '4px',
-              maxWidth: '650px',
-            }}
-          >
-            Manage telemetry, edge AI pipelines, hardware milestones, and team tasks with
-            centralized Redux Toolkit architecture and Axios service layers.
+          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+            Surveillance across schemes, milestones, tasks, risks, and audited expenditures.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <Button
-            variant="primary"
-            icon={Plus}
-            onClick={() => setIsProjectModalOpen(true)}
-          >
-            Create Project
-          </Button>
+        <div className="flex items-center gap-2 flex-wrap sm:shrink-0 w-full sm:w-auto">
           <Button
             variant="secondary"
-            icon={Layers}
-            onClick={() =>
-              dispatch(
-                addToast({
-                  type: 'info',
-                  message: 'API layer ready: Axios interceptors active with JWT token caching.',
-                })
-              )
-            }
+            size="sm"
+            icon={RefreshCw}
+            isLoading={refreshing}
+            onClick={handleRefresh}
+            className="bg-white/10 hover:bg-white/20 text-white border-white/20 flex-1 sm:flex-initial"
           >
-            Test Redux & API
+            Refresh
           </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={Download}
+            onClick={handleExportCSV}
+            className="bg-white/10 hover:bg-white/20 text-white border-white/20 flex-1 sm:flex-initial"
+          >
+            Export CSV
+          </Button>
+
+          {isAdmin && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={PlusCircle}
+              onClick={() => navigate('/projects/new')}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold border-none w-full sm:w-auto"
+            >
+              Register Project
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '20px',
-        }}
-      >
-        {statCards.map((stat, idx) => {
-          const Icon = stat.icon;
+      {/* Top 6 KPI Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+        {kpiCards.map((kpi, idx) => {
+          const Icon = kpi.icon;
           return (
-            <Card key={idx} hoverable style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div>
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                    {stat.title}
-                  </span>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
-                    {stat.value}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px', display: 'block' }}>
-                    {stat.change}
-                  </span>
+            <div
+              key={idx}
+              className={`bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200 border-l-4 ${kpi.borderClass} shadow-xs flex items-start justify-between hover:shadow-md transition-shadow gap-2`}
+            >
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-slate-600 truncate block">
+                  {kpi.title}
+                </span>
+                <div className="text-lg sm:text-xl font-bold text-slate-900 mt-1 break-words">
+                  {kpi.value}
                 </div>
-                <div
-                  style={{
-                    padding: '12px',
-                    borderRadius: 'var(--radius-lg)',
-                    backgroundColor: stat.bgColor,
-                    color: stat.color,
-                  }}
-                >
-                  <Icon size={24} />
-                </div>
+                <span className="text-[11px] text-slate-500 mt-0.5 block truncate">
+                  {kpi.subtext}
+                </span>
               </div>
-            </Card>
+              <div className={`p-2 rounded-lg border shrink-0 ${kpi.iconBg}`}>
+                <Icon size={18} />
+              </div>
+            </div>
           );
         })}
       </div>
 
-      {/* Projects Overview & Tasks Split */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
-          gap: '24px',
-        }}
-      >
-        {/* Active Projects Preview */}
-        <Card
-          title="Active Projects Pipeline"
-          subtitle="Real-time status of hackathon solutions"
-          headerAction={
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={ArrowUpRight}
-              onClick={() => window.location.assign('/projects')}
-            >
-              View All
-            </Button>
-          }
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {projects.slice(0, 4).map((project) => (
-              <div
-                key={project.id}
-                style={{
-                  padding: '14px 16px',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'var(--bg-hover)',
-                  border: '1px solid var(--border-color)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {project.title}
-                  </h4>
-                  <Badge status={project.status} />
-                </div>
-
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0 }}>
-                  {project.description}
-                </p>
-
-                {/* Progress bar */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    <span>Progress</span>
-                    <span>{project.progress}%</span>
-                  </div>
-                  <div
-                    style={{
-                      height: '6px',
-                      backgroundColor: 'var(--bg-active)',
-                      borderRadius: 'var(--radius-full)',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${project.progress}%`,
-                        backgroundColor: 'var(--primary-500)',
-                        borderRadius: 'var(--radius-full)',
-                        transition: 'width 0.5s ease',
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* Primary Analytics Row: Status Distribution + Budget Dial */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Project Status Distribution Donut Chart */}
+        <Card title="Project Lifecycle Breakdown" subtitle="Distribution by active status stage">
+          <div className="w-full h-56 sm:h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={statusDistribution}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={78}
+                  paddingAngle={4}
+                  dataKey="count"
+                  nameKey="status"
+                >
+                  {statusDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color || '#1d467a'} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value, name) => [`${value} Schemes`, name?.toUpperCase()]}
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    borderColor: '#e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  formatter={(value) => value.toUpperCase()}
+                  wrapperStyle={{ fontSize: '11px' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </Card>
 
-        {/* Priority Tasks */}
-        <Card
-          title="High Priority Deliverables"
-          subtitle="Tasks assigned across active sprints"
-          headerAction={
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={ArrowUpRight}
-              onClick={() => window.location.assign('/tasks')}
-            >
-              Task Board
-            </Button>
-          }
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {tasks.slice(0, 5).map((task) => (
-              <div
-                key={task.id}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'var(--bg-hover)',
-                  border: '1px solid var(--border-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {task.title}
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <span>{task.projectTitle}</span>
-                    <span>•</span>
-                    <span>Assignee: {task.assignee}</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Badge variant={task.priority === TASK_PRIORITY.URGENT ? 'error' : 'warning'}>
-                    {task.priority}
-                  </Badge>
-                  <Button
-                    size="sm"
-                    variant={task.status === TASK_STATUS.DONE ? 'secondary' : 'outline'}
-                    onClick={() => {
-                      const nextStatus =
-                        task.status === TASK_STATUS.DONE ? TASK_STATUS.TODO : TASK_STATUS.DONE;
-                      dispatch(updateTaskStatus({ taskId: task.id, status: nextStatus }));
-                      dispatch(
-                        addToast({
-                          type: 'info',
-                          message: `Task updated to ${nextStatus}`,
-                        })
-                      );
-                    }}
-                  >
-                    {task.status === TASK_STATUS.DONE ? 'Completed' : 'Mark Done'}
-                  </Button>
-                </div>
+        {/* Budget Allocation & Utilization */}
+        <Card title="Fiscal Outlay & Burn" subtitle="Financial allocation versus audited execution">
+          <div className="flex flex-col justify-center gap-4 sm:gap-5 h-full">
+            <div className="flex justify-between items-center gap-2">
+              <div>
+                <span className="text-[11px] font-semibold uppercase text-slate-500">
+                  Sanctioned Budget
+                </span>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mt-0.5">
+                  {formatCrores(kpis.totalBudget)}
+                </h3>
               </div>
-            ))}
+              <div className="text-right">
+                <span className="text-[11px] font-semibold uppercase text-slate-500">
+                  Expenditure Incurred
+                </span>
+                <h3 className="text-lg sm:text-xl font-bold text-emerald-600 mt-0.5">
+                  {formatCrores(kpis.utilizedBudget || kpis.usedbudget)}
+                </h3>
+              </div>
+            </div>
+
+            {/* Visual Budget Bar */}
+            <div>
+              <div className="flex justify-between text-xs text-slate-600 mb-1.5 font-medium">
+                <span>Budget Consumption</span>
+                <span className="font-bold text-blue-700">
+                  {kpis.overallUtilizationPercent}% Utilized
+                </span>
+              </div>
+              <div className="h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-700 to-emerald-500 rounded-full transition-all duration-700"
+                  style={{ width: `${Math.min(kpis.overallUtilizationPercent, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div>
+                <span className="text-xs text-slate-500 block">
+                  Remaining Unutilized
+                </span>
+                <span className="text-sm sm:text-base font-bold text-slate-800">
+                  {formatCrores(kpis.remainingBudget)}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 block">
+                  Open Risks / Issues
+                </span>
+                <span
+                  className={`text-sm sm:text-base font-bold ${
+                    kpis.openRisks > 0 ? 'text-rose-600' : 'text-emerald-600'
+                  }`}
+                >
+                  {kpis.openRisks} Flags
+                </span>
+              </div>
+            </div>
           </div>
         </Card>
       </div>
 
-      {/* New Project Modal */}
-      <Modal
-        isOpen={isProjectModalOpen}
-        onClose={() => setIsProjectModalOpen(false)}
-        title="Create New Hackathon Project"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setIsProjectModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleCreateProject}>
-              Save Project
-            </Button>
-          </>
+      {/* Critical Risks Alert Section */}
+      <Card
+        title="High & Critical Risk Register Alerts"
+        subtitle="Surveillance flags requiring intervention"
+        headerAction={
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={ExternalLink}
+            onClick={() => navigate('/risks')}
+          >
+            View Register
+          </Button>
         }
       >
-        <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Input
-            label="Project Title"
-            placeholder="e.g. AI Flood Prediction Sensor Grid"
-            value={newProjectTitle}
-            onChange={(e) => setNewProjectTitle(e.target.value)}
-            required
-          />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-              Category / Domain
-            </label>
-            <select
-              value={newProjectCategory}
-              onChange={(e) => setNewProjectCategory(e.target.value)}
-              style={{
-                backgroundColor: 'var(--bg-input)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                padding: '10px 14px',
-                color: 'var(--text-primary)',
-                fontSize: '0.875rem',
-                outline: 'none',
-              }}
-            >
-              <option value="Smart Automation">Smart Automation</option>
-              <option value="Disaster Management">Disaster Management</option>
-              <option value="Agriculture & Rural Dev">Agriculture & Rural Dev</option>
-              <option value="Smart Water & Sanitation">Smart Water & Sanitation</option>
-              <option value="GovTech & Cybersecurity">GovTech & Cybersecurity</option>
-            </select>
+        {criticalRisks.length === 0 ? (
+          <div className="p-4 sm:p-6 text-center text-emerald-600">
+            <CheckCircle2 size={24} className="mx-auto mb-2" />
+            <p className="font-semibold text-xs sm:text-sm">
+              All schemes currently adhering to risk compliance tolerances.
+            </p>
           </div>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {criticalRisks.map((risk) => (
+              <div
+                key={risk._id || risk.id}
+                className="p-3 sm:p-3.5 rounded-xl border border-rose-200 bg-rose-50 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge status={risk.severity} />
+                    <span className="font-bold text-xs sm:text-sm text-rose-900 break-words">
+                      {risk.title}
+                    </span>
+                  </div>
+                  {risk.description && (
+                    <p className="text-xs text-rose-700 mt-1 line-clamp-2">
+                      {risk.description}
+                    </p>
+                  )}
+                </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-              Description & Objectives
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Brief summary of the architecture and goals..."
-              value={newProjectDesc}
-              onChange={(e) => setNewProjectDesc(e.target.value)}
-              style={{
-                backgroundColor: 'var(--bg-input)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                padding: '10px 14px',
-                color: 'var(--text-primary)',
-                fontSize: '0.875rem',
-                outline: 'none',
-                resize: 'vertical',
-              }}
-            />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => navigate('/risks')}
+                  className="self-start sm:self-center shrink-0 text-xs"
+                >
+                  Review
+                </Button>
+              </div>
+            ))}
           </div>
-        </form>
-      </Modal>
+        )}
+      </Card>
+
+      {/* Recent Infrastructure Schemes: Desktop Table + Mobile Cards */}
+      <Card
+        title="Recent Infrastructure Schemes"
+        subtitle="Active projects in the surveillance pipeline"
+        headerAction={
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={ExternalLink}
+            onClick={() => navigate('/projects')}
+          >
+            Directory
+          </Button>
+        }
+      >
+        {/* Desktop / Tablet Table View (hidden on small mobile) */}
+        <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full text-left text-sm text-slate-700">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-3">Scheme Name</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Sanctioned Budget</th>
+                <th className="px-4 py-3">Used Budget</th>
+                <th className="px-4 py-3">Start Date</th>
+                <th className="px-4 py-3">End Date</th>
+                <th className="px-4 py-3 text-right">Details</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {recentProjects.map((p) => {
+                const pid = p._id || p.id;
+                return (
+                  <tr key={pid} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-slate-900 max-w-xs truncate">
+                      {p.name}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge status={p.status} />
+                    </td>
+                    <td className="px-4 py-3">{formatCrores(p.budget)}</td>
+                    <td className="px-4 py-3 text-emerald-600 font-semibold">
+                      {formatCrores(p.usedbudget)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{formatDate(p.startDate)}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{formatDate(p.endDate)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Button size="sm" variant="ghost" onClick={() => navigate(`/projects/${pid}`)}>
+                        View
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards View (displayed only on < md) */}
+        <div className="md:hidden flex flex-col gap-3">
+          {recentProjects.length === 0 ? (
+            <p className="text-center text-xs text-slate-400 py-6">No recent schemes found.</p>
+          ) : (
+            recentProjects.map((p) => {
+              const pid = p._id || p.id;
+              return (
+                <div
+                  key={pid}
+                  onClick={() => navigate(`/projects/${pid}`)}
+                  className="p-3.5 bg-slate-50 hover:bg-blue-50/40 rounded-xl border border-slate-200 transition-all flex flex-col gap-2.5 cursor-pointer shadow-2xs"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-bold text-sm text-slate-900 leading-snug break-words">
+                      {p.name}
+                    </h4>
+                    <Badge status={p.status} className="shrink-0" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-200/70">
+                    <div>
+                      <span className="text-slate-500 text-[11px] block">Sanctioned</span>
+                      <span className="font-bold text-slate-800">{formatCrores(p.budget)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 text-[11px] block">Incurred</span>
+                      <span className="font-bold text-emerald-600">{formatCrores(p.usedbudget)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                    <span className="flex items-center gap-1">
+                      <Calendar size={12} className="text-slate-400" />
+                      {formatDate(p.startDate)} → {formatDate(p.endDate)}
+                    </span>
+                    <span className="text-blue-700 font-semibold flex items-center gap-0.5">
+                      View <ChevronRight size={13} />
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </Card>
     </div>
   );
 };

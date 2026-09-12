@@ -1,112 +1,130 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import Card from '../../components/common/Card/Card';
 import Input from '../../components/common/Input/Input';
 import Button from '../../components/common/Button/Button';
-import { Lock, Mail, Cpu, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, Building2, Eye, EyeOff, ShieldCheck, UserCheck } from 'lucide-react';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
 
-  const [email, setEmail] = useState('nakul@sih.gov.in');
-  const [password, setPassword] = useState('sih2026password');
+  const [email, setEmail] = useState('admin@gov.in');
+  const [password, setPassword] = useState('admin123');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
     const result = await login({ email, password });
     if (result.success) {
       navigate('/');
+    } else {
+      setErrorMessage(
+        result.error || 'Authentication failed. Please verify your government portal credentials.'
+      );
     }
   };
 
+  const handleQuickFill = (roleEmail, rolePass) => {
+    setEmail(roleEmail);
+    setPassword(rolePass);
+    setErrorMessage('');
+  };
+
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        backgroundColor: 'var(--bg-app)',
-        position: 'relative',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '440px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px',
-        }}
-      >
-        {/* Branding header */}
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: 'var(--radius-lg)',
-              background: 'linear-gradient(135deg, var(--primary-500), var(--accent-violet))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              marginBottom: '16px',
-              boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4)',
-            }}
-          >
-            <Cpu size={28} />
+    <div className="min-h-screen flex flex-col items-center justify-center p-3.5 sm:p-6 bg-slate-50 relative">
+      {/* Top Tricolor Ribbon */}
+      <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-white to-emerald-600 shadow-xs fixed top-0 left-0 z-10" />
+
+      <div className="w-full max-w-md flex flex-col gap-4 sm:gap-5 my-auto">
+        {/* National Header Branding */}
+        <div className="text-center flex flex-col items-center">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-slate-950 to-blue-950 border-2 border-amber-500 flex items-center justify-center text-white mb-2.5 sm:mb-3 shadow-md shrink-0">
+            <Building2 size={24} className="text-white sm:hidden" />
+            <Building2 size={28} className="text-white hidden sm:block" />
           </div>
-          <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            SIH ProjectHub
+
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-600">
+            Government of India
+          </span>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5 tracking-tight">
+            Project Monitoring Platform
           </h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Integrated Project Management Architecture
+          <p className="text-xs text-slate-500 mt-1 max-w-sm px-2 leading-relaxed">
+            Centralized National Infrastructure Surveillance & Milestone Management
           </p>
         </div>
 
-        {/* Login Card */}
-        <Card>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        {/* Quick Demo Credentials Panel for Hackathon Evaluators */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-col gap-2">
+          <span className="text-[10px] sm:text-[11px] font-bold text-blue-800 uppercase tracking-wide">
+            ⚡ Hackathon Quick Evaluator Login (One-Click):
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleQuickFill('admin@gov.in', 'admin123')}
+              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white border border-blue-200 text-xs font-semibold text-blue-900 hover:bg-blue-100/50 shadow-2xs transition-colors cursor-pointer min-h-[40px]"
+            >
+              <ShieldCheck size={15} className="text-amber-600 shrink-0" />
+              <span>Fill Admin (Director)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleQuickFill('viewer@gov.in', 'viewer123')}
+              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white border border-blue-200 text-xs font-semibold text-sky-900 hover:bg-sky-100/50 shadow-2xs transition-colors cursor-pointer min-h-[40px]"
+            >
+              <UserCheck size={15} className="text-sky-600 shrink-0" />
+              <span>Fill Viewer (Public)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Login Form Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-7 flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {errorMessage && (
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs leading-relaxed">
+                {errorMessage}
+              </div>
+            )}
+
             <Input
-              label="Official Email"
+              label="Official Government Email ID"
               type="email"
               icon={Mail}
-              placeholder="nakul@sih.gov.in"
+              placeholder="e.g. admin@gov.in"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
 
             <Input
-              label="Password"
-              type="password"
+              label="Secure Password"
+              type={showPassword ? 'text' : 'password'}
               icon={Lock}
               placeholder="••••••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-slate-400 hover:text-slate-700 transition-colors cursor-pointer flex items-center p-1"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              }
               required
             />
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--bg-hover)',
-                border: '1px solid var(--border-color)',
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              <ShieldCheck size={16} color="var(--primary-500)" style={{ flexShrink: 0 }} />
-              <span>
-                Redux Toolkit authSlice + Axios request interceptor injects Bearer JWT on dispatch.
+            <div className="flex items-start sm:items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-500">
+              <ShieldCheck size={16} className="text-blue-700 shrink-0 mt-0.5 sm:mt-0" />
+              <span className="leading-snug">
+                Secured by 256-bit TLS encryption. Access restricted to authorized national project nodal officers.
               </span>
             </div>
 
@@ -115,12 +133,12 @@ const LoginPage = () => {
               variant="primary"
               size="lg"
               isLoading={isLoading}
-              style={{ width: '100%', marginTop: '4px' }}
+              className="w-full bg-blue-900 hover:bg-blue-950 text-white font-semibold py-2.5 sm:py-3 rounded-lg shadow-sm transition-all text-sm sm:text-base cursor-pointer"
             >
-              Authenticate & Enter
+              Authenticate & Access Dashboard
             </Button>
           </form>
-        </Card>
+        </div>
       </div>
     </div>
   );

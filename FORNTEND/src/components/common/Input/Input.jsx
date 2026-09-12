@@ -18,39 +18,19 @@ const Input = forwardRef(
     const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+      <div className="flex flex-col gap-1.5 w-full">
         {label && (
           <label
             htmlFor={inputId}
-            style={{
-              fontSize: '0.8125rem',
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-            }}
+            className="text-xs font-semibold text-slate-700 tracking-wide"
           >
             {label}
           </label>
         )}
 
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            width: '100%',
-          }}
-        >
+        <div className="relative flex items-center w-full">
           {Icon && (
-            <div
-              style={{
-                position: 'absolute',
-                left: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                color: 'var(--text-muted)',
-                pointerEvents: 'none',
-              }}
-            >
+            <div className="absolute left-3 flex items-center text-slate-400 pointer-events-none">
               <Icon size={16} />
             </div>
           )}
@@ -59,53 +39,27 @@ const Input = forwardRef(
             id={inputId}
             ref={ref}
             type={type}
-            style={{
-              width: '100%',
-              backgroundColor: 'var(--bg-input)',
-              border: `1px solid ${error ? 'var(--status-error)' : 'var(--border-color)'}`,
-              borderRadius: 'var(--radius-md)',
-              padding: '10px 14px',
-              paddingLeft: Icon ? '38px' : '14px',
-              paddingRight: rightElement ? '40px' : '14px',
-              color: 'var(--text-primary)',
-              fontSize: '0.875rem',
-              outline: 'none',
-              transition: 'border-color var(--transition-fast), background-color var(--transition-fast)',
-            }}
-            onFocus={(e) => {
-              if (!error) {
-                e.target.style.borderColor = 'var(--border-color-focus)';
-                e.target.style.backgroundColor = 'var(--bg-input-focus)';
-              }
-            }}
-            onBlur={(e) => {
-              if (!error) {
-                e.target.style.borderColor = 'var(--border-color)';
-                e.target.style.backgroundColor = 'var(--bg-input)';
-              }
-            }}
-            className={`input-field ${className}`}
+            className={`w-full bg-white border rounded-lg py-2 px-3.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 ${
+              Icon ? 'pl-9' : 'pl-3.5'
+            } ${rightElement ? 'pr-10' : 'pr-3.5'} ${
+              error
+                ? 'border-red-500 focus:ring-2 focus:ring-red-500/20'
+                : 'border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20'
+            } ${className}`}
             {...props}
           />
 
           {rightElement && (
-            <div
-              style={{
-                position: 'absolute',
-                right: '12px',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
+            <div className="absolute right-3 flex items-center text-slate-400">
               {rightElement}
             </div>
           )}
         </div>
 
         {error ? (
-          <span style={{ fontSize: '0.75rem', color: 'var(--status-error)' }}>{error}</span>
+          <span className="text-xs text-red-600">{error}</span>
         ) : helperText ? (
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{helperText}</span>
+          <span className="text-xs text-slate-500">{helperText}</span>
         ) : null}
       </div>
     );

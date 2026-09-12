@@ -12,90 +12,40 @@ const Button = ({
   type = 'button',
   ...props
 }) => {
-  const baseStyles = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    fontWeight: '500',
-    borderRadius: 'var(--radius-md)',
-    transition: 'all var(--transition-fast)',
-    cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
-    opacity: disabled || isLoading ? 0.65 : 1,
-    border: '1px solid transparent',
-    whiteSpace: 'nowrap',
-  };
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-xs gap-1.5',
+    md: 'px-4 py-2 text-sm gap-2',
+    lg: 'px-5 py-2.5 text-base gap-2.5',
+  }[size] || 'px-4 py-2 text-sm gap-2';
 
-  const sizeStyles = {
-    sm: { padding: '6px 12px', fontSize: '0.8125rem' },
-    md: { padding: '9px 18px', fontSize: '0.875rem' },
-    lg: { padding: '12px 24px', fontSize: '1rem' },
-  }[size] || { padding: '9px 18px', fontSize: '0.875rem' };
+  const variantClasses = {
+    primary: 'bg-blue-700 text-white hover:bg-blue-800 shadow-sm focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]',
+    secondary: 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 shadow-2xs focus:ring-2 focus:ring-slate-300 active:scale-[0.98]',
+    outline: 'bg-transparent text-blue-700 border border-blue-700 hover:bg-blue-50 active:scale-[0.98]',
+    danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm focus:ring-2 focus:ring-red-500/40 active:scale-[0.98]',
+    ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+  }[variant] || 'bg-blue-700 text-white hover:bg-blue-800';
 
-  const variantStyles = {
-    primary: {
-      backgroundColor: 'var(--primary-600)',
-      color: '#ffffff',
-      boxShadow: '0 2px 4px rgba(79, 70, 229, 0.25)',
-    },
-    secondary: {
-      backgroundColor: 'var(--bg-hover)',
-      color: 'var(--text-primary)',
-      border: '1px solid var(--border-color)',
-    },
-    outline: {
-      backgroundColor: 'transparent',
-      color: 'var(--primary-500)',
-      border: '1px solid var(--primary-500)',
-    },
-    danger: {
-      backgroundColor: 'var(--status-error)',
-      color: '#ffffff',
-      boxShadow: '0 2px 4px rgba(239, 68, 68, 0.25)',
-    },
-    ghost: {
-      backgroundColor: 'transparent',
-      color: 'var(--text-secondary)',
-    },
-  }[variant] || {};
+  const iconSizes = {
+    sm: 14,
+    md: 16,
+    lg: 18,
+  }[size] || 16;
 
   return (
     <button
       type={type}
       disabled={disabled || isLoading}
       onClick={onClick}
-      style={{ ...baseStyles, ...sizeStyles, ...variantStyles }}
-      className={`btn btn-${variant} ${className}`}
+      className={`inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap ${sizeClasses} ${variantClasses} ${className}`}
       {...props}
     >
       {isLoading ? (
-        <span
-          style={{
-            width: '16px',
-            height: '16px',
-            border: '2px solid currentColor',
-            borderRightColor: 'transparent',
-            borderRadius: '50%',
-            animation: 'spin 0.75s linear infinite',
-            display: 'inline-block',
-          }}
-        />
+        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
       ) : Icon ? (
-        <Icon size={size === 'sm' ? 14 : size === 'lg' ? 20 : 16} />
+        <Icon size={iconSizes} className="shrink-0" />
       ) : null}
       {children}
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          filter: brightness(1.06);
-        }
-        .btn:active:not(:disabled) {
-          transform: translateY(0);
-        }
-      `}</style>
     </button>
   );
 };

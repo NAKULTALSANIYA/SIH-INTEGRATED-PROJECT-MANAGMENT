@@ -18,16 +18,12 @@ export const projectApi = {
     return await axiosClient.put(API_ENDPOINTS.PROJECTS.BY_ID(id), projectData);
   },
 
+  updateStatus: async (id, status, remarks = '') => {
+    return await axiosClient.patch(API_ENDPOINTS.PROJECTS.UPDATE_STATUS(id), { status, remarks });
+  },
+
   delete: async (id) => {
     return await axiosClient.delete(API_ENDPOINTS.PROJECTS.BY_ID(id));
-  },
-
-  getStats: async () => {
-    return await axiosClient.get(API_ENDPOINTS.PROJECTS.STATS);
-  },
-
-  getMembers: async (id) => {
-    return await axiosClient.get(API_ENDPOINTS.PROJECTS.MEMBERS(id));
   },
 };
 

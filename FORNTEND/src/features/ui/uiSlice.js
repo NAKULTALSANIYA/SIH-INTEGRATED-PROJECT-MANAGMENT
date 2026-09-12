@@ -12,6 +12,7 @@ if (typeof document !== 'undefined') {
 const initialState = {
   theme: initialTheme,
   sidebarCollapsed: false,
+  mobileSidebarOpen: false,
   toasts: [],
   activeModal: null,
 };
@@ -39,6 +40,15 @@ export const uiSlice = createSlice({
     },
     setSidebarCollapsed: (state, action) => {
       state.sidebarCollapsed = action.payload;
+    },
+    toggleMobileSidebar: (state) => {
+      state.mobileSidebarOpen = !state.mobileSidebarOpen;
+    },
+    setMobileSidebarOpen: (state, action) => {
+      state.mobileSidebarOpen = action.payload;
+    },
+    closeMobileSidebar: (state) => {
+      state.mobileSidebarOpen = false;
     },
     addToast: (state, action) => {
       const toast = {
@@ -69,6 +79,9 @@ export const {
   setTheme,
   toggleSidebar,
   setSidebarCollapsed,
+  toggleMobileSidebar,
+  setMobileSidebarOpen,
+  closeMobileSidebar,
   addToast,
   removeToast,
   clearToasts,
@@ -78,6 +91,7 @@ export const {
 
 export const selectTheme = (state) => state.ui.theme;
 export const selectSidebarCollapsed = (state) => state.ui.sidebarCollapsed;
+export const selectMobileSidebarOpen = (state) => state.ui.mobileSidebarOpen;
 export const selectToasts = (state) => state.ui.toasts;
 export const selectActiveModal = (state) => state.ui.activeModal;
 
