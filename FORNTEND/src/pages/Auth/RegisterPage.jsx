@@ -66,7 +66,6 @@ const RegisterPage = () => {
 
     const payload = {
       name: formData.name.trim(),
-      username: formData.name.trim(),
       email: formData.email.trim().toLowerCase(),
       department: formData.department.trim() || 'Central Infrastructure Wing',
       designation: formData.designation.trim() || 'Project Monitoring Officer',
