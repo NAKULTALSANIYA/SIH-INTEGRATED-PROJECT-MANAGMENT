@@ -13,18 +13,24 @@ export const authService = {
 
     const user = await userDao.findByEmailWithPassword(email);
     if (!user) {
-      throw new ApiError(401, 'Invalid credentials. Please verify your portal email.');
+      throw new ApiError(401, 'Invalid credentials.');
     }
 
-    // Compare with bcrypt hash or fallback to direct comparison
+    // Verify password strictly with bcrypt hash
     let isMatch = false;
     if (user.passwordHash) {
       isMatch = await bcrypt.compare(password, user.passwordHash);
-      if (!isMatch && (password === 'admin123' || password === 'viewer123')) {
-        isMatch = true;
-      }
     } else if (user.password) {
       isMatch = user.password === password;
+      if (isMatch) {
+        // Upgrade legacy account to secure bcrypt hash
+        const salt = await bcrypt.genSalt(10);
+        const upgradedHash = await bcrypt.hash(password, salt);
+        await userDao.update(user._id || user.id, {
+          passwordHash: upgradedHash,
+          password: null,
+        });
+      }
     }
 
     if (!isMatch) {
@@ -78,14 +84,14 @@ export const authService = {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    const normalizedRole = role === 'admin' ? 'admin' : (role === 'viewer' ? 'viewer' : 'user');
+    const normalizedRole = 'user';
     const newUser = await userDao.create({
       name: finalName,
       email: cleanEmail,
       ...(cleanPhone ? { phone: cleanPhone } : {}),
       passwordHash,
       role: normalizedRole,
-      isAdmin: normalizedRole === 'admin',
+      isAdmin: false,
       department: department.trim(),
       designation: designation.trim(),
       createdAt: new Date(),

@@ -770,20 +770,6 @@ const LoginPage = () => {
                     <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
                     <span>256-bit TLS Encrypted</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const clean = mobileNumber.replace(/[^\d]/g, '');
-                      if (clean.length === 10) {
-                        handleSendOtp();
-                      } else {
-                        setErrorMessage('Please enter your 10-digit mobile number above to use in-page SMS fallback.');
-                      }
-                    }}
-                    className="text-slate-400 hover:text-blue-700 dark:hover:text-blue-400 hover:underline cursor-pointer transition-colors"
-                  >
-                    In-Page SMS Fallback
-                  </button>
                 </div>
               </div>
             )
