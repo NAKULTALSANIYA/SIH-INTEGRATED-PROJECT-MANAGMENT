@@ -85,6 +85,7 @@ const ClientCrudModal = ({
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setFormError('');
 
     if (!formData.name.trim()) {
@@ -131,6 +132,7 @@ const ClientCrudModal = ({
   };
 
   const handleDeleteClient = async (id) => {
+    if (isSubmitting) return;
     try {
       setIsSubmitting(true);
       await clientApi.delete(id);
@@ -261,14 +263,15 @@ const ClientCrudModal = ({
                               type="button"
                               onClick={() => handleDeleteClient(id)}
                               disabled={isSubmitting}
-                              className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold cursor-pointer"
+                              className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              Yes
+                              {isSubmitting ? '...' : 'Yes'}
                             </button>
                             <button
                               type="button"
                               onClick={() => setDeleteConfirmId(null)}
-                              className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded text-[10px] font-semibold cursor-pointer"
+                              disabled={isSubmitting}
+                              className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded text-[10px] font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               No
                             </button>
@@ -381,6 +384,7 @@ const ClientCrudModal = ({
                   size="sm"
                   type="submit"
                   isLoading={isSubmitting}
+                  disabled={isSubmitting}
                   className="bg-blue-900 hover:bg-blue-950 text-white cursor-pointer"
                 >
                   {mode === 'edit' ? 'Update Client' : 'Create & Select Client'}

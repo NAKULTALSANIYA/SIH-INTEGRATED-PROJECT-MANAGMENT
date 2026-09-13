@@ -8,6 +8,7 @@ import { clientApi, teamApi, userApi, masterApi } from '../../api';
 import Card from '../../components/common/Card/Card';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
+import ConfirmationModal from '../../components/common/ConfirmationModal/ConfirmationModal';
 import { Skeleton } from '../../components/common/Skeleton';
 import {
   ArrowLeft,
@@ -67,6 +68,12 @@ const CreateProjectPage = () => {
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [teamModalMode, setTeamModalMode] = useState('manage'); // 'manage' | 'create' | 'edit'
   const [teamToEdit, setTeamToEdit] = useState(null);
+
+  // Quick Delete States
+  const [quickDeleteClientTarget, setQuickDeleteClientTarget] = useState(null);
+  const [isDeletingQuickClient, setIsDeletingQuickClient] = useState(false);
+  const [quickDeleteTeamTarget, setQuickDeleteTeamTarget] = useState(null);
+  const [isDeletingQuickTeam, setIsDeletingQuickTeam] = useState(false);
 
   const loadRelations = async () => {
     try {
@@ -147,15 +154,21 @@ const CreateProjectPage = () => {
     setIsClientModalOpen(true);
   };
 
-  const handleQuickDeleteClient = async (id, clientName) => {
-    if (!window.confirm(`Are you sure you want to delete sponsoring agency "${clientName}"?`)) {
-      return;
-    }
+  const handleQuickDeleteClient = (id, clientName) => {
+    setQuickDeleteClientTarget({ id, name: clientName });
+  };
+
+  const handleConfirmQuickDeleteClient = async () => {
+    if (!quickDeleteClientTarget || isDeletingQuickClient) return;
     try {
-      await clientApi.delete(id);
-      handleClientsUpdated(null, id);
+      setIsDeletingQuickClient(true);
+      await clientApi.delete(quickDeleteClientTarget.id);
+      handleClientsUpdated(null, quickDeleteClientTarget.id);
+      setQuickDeleteClientTarget(null);
     } catch (err) {
       dispatch(addToast({ type: 'error', message: err.message || 'Failed to delete client agency' }));
+    } finally {
+      setIsDeletingQuickClient(false);
     }
   };
 
@@ -201,15 +214,21 @@ const CreateProjectPage = () => {
     setIsTeamModalOpen(true);
   };
 
-  const handleQuickDeleteTeam = async (id, teamName) => {
-    if (!window.confirm(`Are you sure you want to delete project team "${teamName}"?`)) {
-      return;
-    }
+  const handleQuickDeleteTeam = (id, teamName) => {
+    setQuickDeleteTeamTarget({ id, name: teamName });
+  };
+
+  const handleConfirmQuickDeleteTeam = async () => {
+    if (!quickDeleteTeamTarget || isDeletingQuickTeam) return;
     try {
-      await teamApi.delete(id);
-      handleTeamsUpdated(null, id);
+      setIsDeletingQuickTeam(true);
+      await teamApi.delete(quickDeleteTeamTarget.id);
+      handleTeamsUpdated(null, quickDeleteTeamTarget.id);
+      setQuickDeleteTeamTarget(null);
     } catch (err) {
       dispatch(addToast({ type: 'error', message: err.message || 'Failed to delete project team' }));
+    } finally {
+      setIsDeletingQuickTeam(false);
     }
   };
 
@@ -234,6 +253,7 @@ const CreateProjectPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!name.trim()) {
       dispatch(addToast({ type: 'error', message: 'Project name is required' }));
       return;
@@ -452,8 +472,9 @@ const CreateProjectPage = () => {
                     </button>
                     <button
                       type="button"
+                      disabled={isDeletingQuickClient}
                       onClick={() => handleQuickDeleteClient(selectedClient._id || selectedClient.id, selectedClient.name)}
-                      className="p-1 rounded-md text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
+                      className="p-1 rounded-md text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       title="Delete this client agency"
                     >
                       <Trash2 size={13} />
@@ -523,8 +544,9 @@ const CreateProjectPage = () => {
                     </button>
                     <button
                       type="button"
+                      disabled={isDeletingQuickTeam}
                       onClick={() => handleQuickDeleteTeam(selectedTeam._id || selectedTeam.id, selectedTeam.name)}
-                      className="p-1 rounded-md text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
+                      className="p-1 rounded-md text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       title="Delete this project team"
                     >
                       <Trash2 size={13} />
@@ -539,6 +561,7 @@ const CreateProjectPage = () => {
             <Button
               variant="secondary"
               onClick={() => navigate('/projects')}
+              disabled={isSubmitting}
               className="w-full sm:w-auto"
             >
               Cancel
@@ -579,6 +602,36 @@ const CreateProjectPage = () => {
         onSelectTeam={(id) => setTeamId(id)}
         initialEditTeam={teamToEdit}
         initialMode={teamModalMode}
+      />
+
+      {/* Confirmation Modal for Quick Client Deletion */}
+      <ConfirmationModal
+        isOpen={!!quickDeleteClientTarget}
+        onClose={() => !isDeletingQuickClient && setQuickDeleteClientTarget(null)}
+        onConfirm={handleConfirmQuickDeleteClient}
+        title="Delete Sponsoring Agency"
+        message="Are you sure you want to remove this sponsoring agency from the registry?"
+        itemName={quickDeleteClientTarget?.name}
+        confirmText="Delete Agency"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        icon={Trash2}
+        isLoading={isDeletingQuickClient}
+      />
+
+      {/* Confirmation Modal for Quick Team Deletion */}
+      <ConfirmationModal
+        isOpen={!!quickDeleteTeamTarget}
+        onClose={() => !isDeletingQuickTeam && setQuickDeleteTeamTarget(null)}
+        onConfirm={handleConfirmQuickDeleteTeam}
+        title="Delete Project Team"
+        message="Are you sure you want to delete this project team? All member assignments will be unlinked."
+        itemName={quickDeleteTeamTarget?.name}
+        confirmText="Delete Team"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        icon={Trash2}
+        isLoading={isDeletingQuickTeam}
       />
     </div>
   );

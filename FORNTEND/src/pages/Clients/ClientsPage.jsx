@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clientApi, projectApi } from '../../api';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
@@ -7,6 +7,8 @@ import { addToast } from '../../features/ui/uiSlice';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
 import Modal from '../../components/common/Modal/Modal';
+import ConfirmationModal from '../../components/common/ConfirmationModal/ConfirmationModal';
+import Pagination from '../../components/common/Pagination/Pagination';
 import { Skeleton } from '../../components/common/Skeleton';
 import {
   Building2,
@@ -36,6 +38,10 @@ const ClientsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
@@ -49,6 +55,7 @@ const ClientsPage = () => {
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingClientId, setDeletingClientId] = useState(null);
+  const [clientToDelete, setClientToDelete] = useState(null);
 
   const loadData = async () => {
     try {
@@ -111,6 +118,7 @@ const ClientsPage = () => {
     }
 
     try {
+      if (isSubmitting) return;
       setIsSubmitting(true);
       const payload = {
         name: formData.name.trim(),
@@ -137,14 +145,17 @@ const ClientsPage = () => {
     }
   };
 
-  const handleDeleteClient = async (id, clientName) => {
-    if (!window.confirm(`Are you sure you want to delete sponsoring agency "${clientName}"?`)) {
-      return;
-    }
+  const handleDeleteClient = (id, clientName) => {
+    setClientToDelete({ id, name: clientName });
+  };
+
+  const handleConfirmDeleteClient = async () => {
+    if (!clientToDelete || deletingClientId) return;
     try {
-      setDeletingClientId(id);
-      await clientApi.delete(id);
-      dispatch(addToast({ type: 'info', message: `Agency "${clientName}" deleted.` }));
+      setDeletingClientId(clientToDelete.id);
+      await clientApi.delete(clientToDelete.id);
+      dispatch(addToast({ type: 'info', message: `Agency "${clientToDelete.name}" deleted.` }));
+      setClientToDelete(null);
       loadData();
     } catch (err) {
       dispatch(addToast({ type: 'error', message: err.message || 'Failed to delete client agency' }));
@@ -163,6 +174,17 @@ const ClientsPage = () => {
       (c.phone || '').toLowerCase().includes(q)
     );
   });
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  // Paginated clients
+  const paginatedClients = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredClients.slice(startIndex, startIndex + pageSize);
+  }, [filteredClients, currentPage, pageSize]);
 
   // Unique companies / ministries
   const uniqueCompanies = Array.from(new Set(clients.map((c) => c.company).filter(Boolean)));
@@ -291,7 +313,7 @@ const ClientsPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredClients.map((client) => {
+          {paginatedClients.map((client) => {
             const id = client._id || client.id;
             const linkedProjects = projects.filter((p) => {
               const pClientId = typeof p.clientId === 'object' ? p.clientId?._id || p.clientId?.id : p.clientId;
@@ -325,7 +347,7 @@ const ClientsPage = () => {
                             type="button"
                             onClick={() => handleDeleteClient(id, client.name)}
                             disabled={deletingClientId === id}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             title="Delete Agency"
                           >
                             <Trash2 size={14} />
@@ -392,6 +414,21 @@ const ClientsPage = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Pagination */}
+      {!isLoading && filteredClients.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredClients.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[6, 9, 12, 24]}
+        />
       )}
 
       {/* Create / Edit Modal */}
@@ -462,6 +499,7 @@ const ClientsPage = () => {
               size="sm"
               type="submit"
               isLoading={isSubmitting}
+              disabled={isSubmitting}
               className="bg-blue-900 hover:bg-blue-950 text-white cursor-pointer"
             >
               {modalMode === 'edit' ? 'Update Agency' : 'Register Agency'}
@@ -469,6 +507,21 @@ const ClientsPage = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Confirmation Modal for Client Agency Deletion */}
+      <ConfirmationModal
+        isOpen={!!clientToDelete}
+        onClose={() => !deletingClientId && setClientToDelete(null)}
+        onConfirm={handleConfirmDeleteClient}
+        title="Delete Sponsoring Agency"
+        message="Are you sure you want to remove this sponsoring agency from the registry? Make sure no active schemes are assigned to this agency."
+        itemName={clientToDelete?.name}
+        confirmText="Delete Agency"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        icon={Trash2}
+        isLoading={!!deletingClientId}
+      />
     </div>
   );
 };

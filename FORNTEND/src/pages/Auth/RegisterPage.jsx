@@ -63,6 +63,7 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLoading) return;
     setErrorMessage('');
 
     if (!formData.name.trim()) {

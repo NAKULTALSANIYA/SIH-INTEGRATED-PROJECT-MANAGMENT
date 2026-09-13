@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { teamApi, userApi, masterApi, projectApi } from '../../api';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
@@ -7,6 +7,8 @@ import { addToast } from '../../features/ui/uiSlice';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
 import Modal from '../../components/common/Modal/Modal';
+import ConfirmationModal from '../../components/common/ConfirmationModal/ConfirmationModal';
+import Pagination from '../../components/common/Pagination/Pagination';
 import { Skeleton } from '../../components/common/Skeleton';
 import {
   Users,
@@ -40,6 +42,10 @@ const TeamsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('ALL');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(9);
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
@@ -53,6 +59,7 @@ const TeamsPage = () => {
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingTeamId, setDeletingTeamId] = useState(null);
+  const [teamToDelete, setTeamToDelete] = useState(null);
 
   const loadData = async () => {
     try {
@@ -135,6 +142,7 @@ const TeamsPage = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setFormError('');
 
     if (!formData.name.trim()) {
@@ -168,14 +176,17 @@ const TeamsPage = () => {
     }
   };
 
-  const handleDeleteTeam = async (id, teamName) => {
-    if (!window.confirm(`Are you sure you want to delete team "${teamName}"?`)) {
-      return;
-    }
+  const handleDeleteTeam = (id, teamName) => {
+    setTeamToDelete({ id, name: teamName });
+  };
+
+  const handleConfirmDeleteTeam = async () => {
+    if (!teamToDelete || deletingTeamId) return;
     try {
-      setDeletingTeamId(id);
-      await teamApi.delete(id);
-      dispatch(addToast({ type: 'info', message: `Team "${teamName}" deleted.` }));
+      setDeletingTeamId(teamToDelete.id);
+      await teamApi.delete(teamToDelete.id);
+      dispatch(addToast({ type: 'info', message: `Team "${teamToDelete.name}" deleted.` }));
+      setTeamToDelete(null);
       loadData();
     } catch (err) {
       dispatch(addToast({ type: 'error', message: err.message || 'Failed to delete team' }));
@@ -206,6 +217,17 @@ const TeamsPage = () => {
 
     return matchesSearch && matchesDept;
   });
+
+  // Reset page when search or department changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, departmentFilter]);
+
+  // Paginated teams
+  const paginatedTeams = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredTeams.slice(startIndex, startIndex + pageSize);
+  }, [filteredTeams, currentPage, pageSize]);
 
   // Filtered officers for assignment modal
   const filteredOfficers = users.filter((u) => {
@@ -363,7 +385,7 @@ const TeamsPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTeams.map((team) => {
+          {paginatedTeams.map((team) => {
             const id = team._id || team.id;
             const deptName =
               typeof team.departmentId === 'object' ? team.departmentId?.name || '' : '';
@@ -400,7 +422,7 @@ const TeamsPage = () => {
                             type="button"
                             onClick={() => handleDeleteTeam(id, team.name)}
                             disabled={deletingTeamId === id}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             title="Delete Team"
                           >
                             <Trash2 size={14} />
@@ -488,6 +510,21 @@ const TeamsPage = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Pagination */}
+      {!isLoading && filteredTeams.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredTeams.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[6, 9, 12, 24]}
+        />
       )}
 
       {/* Create / Edit Team Modal */}
@@ -634,6 +671,21 @@ const TeamsPage = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Confirmation Modal for Team Deletion */}
+      <ConfirmationModal
+        isOpen={!!teamToDelete}
+        onClose={() => !deletingTeamId && setTeamToDelete(null)}
+        onConfirm={handleConfirmDeleteTeam}
+        title="Delete Project Team"
+        message="Are you sure you want to delete this project team? All member assignments will be unlinked from active schemes."
+        itemName={teamToDelete?.name}
+        confirmText="Delete Team"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        icon={Trash2}
+        isLoading={!!deletingTeamId}
+      />
     </div>
   );
 };
