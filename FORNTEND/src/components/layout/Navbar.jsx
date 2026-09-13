@@ -148,7 +148,11 @@ const Navbar = () => {
                     : 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
                 }`}
               >
-                {user?.role || 'VIEWER'}
+                {user?.role
+                  ? user.role.toUpperCase() === 'USER'
+                    ? 'MANAGER'
+                    : user.role.toUpperCase()
+                  : 'MANAGER'}
               </span>
             </div>
           </div>

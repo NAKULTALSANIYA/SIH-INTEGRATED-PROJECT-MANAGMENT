@@ -726,8 +726,9 @@ const ProjectDetailsPage = () => {
             ) : (
               comments.map((c) => {
                 const author = c.authorId || {};
-                const authorName = author.name || author.username || 'Nodal Officer';
-                const authorRole = author.role ? author.role.toUpperCase() : (isAdmin ? 'ADMIN' : 'OFFICER');
+                const authorRole = author.role
+                  ? (author.role.toUpperCase() === 'USER' ? 'MANAGER' : author.role.toUpperCase())
+                  : (isAdmin ? 'ADMIN' : 'MANAGER');
                 const authorInitials = getInitials(authorName);
                 const timestamp = formatCommentTimestamp(c.createdAt);
 
